@@ -1,388 +1,595 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reaction-Diffusion Explorer - GPU Accelerated</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            display: flex;
-            height: 100vh;
-        }
-        
-        .canvas-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0a0a0a;
-            position: relative;
-        }
-        
-        canvas {
-            max-width: 100%;
-            max-height: 100%;
-            cursor: crosshair;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-        }
-        
-        .controls {
-            width: 380px;
-            background: #242424;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: -2px 0 10px rgba(0,0,0,0.3);
-        }
-        
-        h1 {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            color: #4a9eff;
-            text-align: center;
-        }
-        
-        h2 {
-            font-size: 1.1em;
-            margin: 20px 0 10px;
-            color: #7ab8ff;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
-        }
-        
-        .control-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            color: #b0b0b0;
-        }
-        
-        input[type="range"] {
-            width: 100%;
-            margin: 5px 0;
-        }
-        
-        input[type="number"] {
-            width: 100px;
-            padding: 5px;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            color: #e0e0e0;
-            border-radius: 3px;
-        }
-        
-        .value-display {
-            display: inline-block;
-            min-width: 60px;
-            text-align: right;
-            color: #4a9eff;
-            font-family: 'Courier New', monospace;
-        }
-        
-        button {
-            background: #4a9eff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            margin: 5px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-        
-        button:hover {
-            background: #3a8eef;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 5px rgba(74, 158, 255, 0.3);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        button.active {
-            background: #2a7edf;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
-        }
-        
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        
-        .preset-button {
-            flex: 1;
-            min-width: 80px;
-        }
-        
-        select {
-            width: 100%;
-            padding: 5px;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            color: #e0e0e0;
-            border-radius: 3px;
-        }
-        
-        .size-inputs {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .size-inputs input {
-            flex: 1;
-        }
-        
-        .info-text {
-            font-size: 0.85em;
-            color: #888;
-            margin-top: 5px;
-        }
-        
-        .fps-counter {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: #4a9eff;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-        
-        .pattern-map {
-            width: 100%;
-            height: 150px;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            border-radius: 5px;
-            margin: 10px 0;
-            cursor: crosshair;
-            position: relative;
-        }
-        
-        .pattern-cursor {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            border: 2px solid #4a9eff;
-            border-radius: 50%;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-        }
-        
-        @media (max-width: 768px) {
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reaction-Diffusion Explorer - GPU Accelerated</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    Roboto,
+                    "Helvetica Neue",
+                    Arial,
+                    sans-serif;
+                background: #1a1a1a;
+                color: #e0e0e0;
+                overflow-x: hidden;
+            }
+
             .container {
-                flex-direction: column;
+                display: flex;
+                height: 100vh;
             }
-            
+
+            .canvas-container {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #0a0a0a;
+                position: relative;
+            }
+
+            canvas {
+                max-width: 100%;
+                max-height: 100%;
+                cursor: crosshair;
+                box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            }
+
             .controls {
+                width: 380px;
+                background: #242424;
+                padding: 20px;
+                overflow-y: auto;
+                box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+                color: #4a9eff;
+                text-align: center;
+            }
+
+            h2 {
+                font-size: 1.1em;
+                margin: 20px 0 10px;
+                color: #7ab8ff;
+                border-bottom: 1px solid #444;
+                padding-bottom: 5px;
+            }
+
+            .control-group {
+                margin-bottom: 15px;
+            }
+
+            label {
+                display: block;
+                margin-bottom: 5px;
+                font-size: 0.9em;
+                color: #b0b0b0;
+            }
+
+            input[type="range"] {
                 width: 100%;
-                max-height: 40vh;
+                margin: 5px 0;
             }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="canvas-container">
-            <canvas id="canvas"></canvas>
-            <div class="fps-counter">FPS: <span id="fps">0</span></div>
-        </div>
-        <div class="controls">
-            <h1>Reaction-Diffusion Explorer</h1>
-            
-            <h2>Quick Actions</h2>
-            <div class="button-group">
-                <button id="pauseBtn">Pause</button>
-                <button id="clearBtn">Clear</button>
-                <button id="seedBtn">Seed Center</button>
-                <button id="randomBtn">Random Seed</button>
-            </div>
-            
-            <h2>Pattern Presets</h2>
-            <div class="button-group">
-                <button class="preset-button" data-preset="mitosis">Mitosis</button>
-                <button class="preset-button" data-preset="coral">Coral</button>
-                <button class="preset-button" data-preset="spots">Spots</button>
-                <button class="preset-button" data-preset="stripes">Stripes</button>
-                <button class="preset-button" data-preset="spirals">Spirals</button>
-                <button class="preset-button" data-preset="waves">Waves</button>
-            </div>
-            
-            <h2>Pattern Map</h2>
-            <div class="pattern-map" id="patternMap">
-                <div class="pattern-cursor" id="patternCursor"></div>
-            </div>
-            <div class="info-text">Click to select f (vertical) and k (horizontal) values</div>
-            
-            <h2>Parameters</h2>
-            <div class="control-group">
-                <label>Feed Rate (f): <span class="value-display" id="feedValue">0.055</span></label>
-                <input type="range" id="feedRate" min="0.01" max="0.1" step="0.0001" value="0.055">
-            </div>
-            
-            <div class="control-group">
-                <label>Kill Rate (k): <span class="value-display" id="killValue">0.062</span></label>
-                <input type="range" id="killRate" min="0.045" max="0.07" step="0.0001" value="0.062">
-            </div>
-            
-            <div class="control-group">
-                <label>Diffusion A (DA): <span class="value-display" id="daValue">1.0</span></label>
-                <input type="range" id="diffusionA" min="0.5" max="1.5" step="0.01" value="1.0">
-            </div>
-            
-            <div class="control-group">
-                <label>Diffusion B (DB): <span class="value-display" id="dbValue">0.5</span></label>
-                <input type="range" id="diffusionB" min="0.1" max="0.8" step="0.01" value="0.5">
-            </div>
-            
-            <div class="control-group">
-                <label>Time Step (Δt): <span class="value-display" id="dtValue">1.0</span></label>
-                <input type="range" id="timeStep" min="0.5" max="2.0" step="0.1" value="1.0">
-            </div>
-            
-            <div class="control-group">
-                <label>Iterations per Frame: <span class="value-display" id="iterValue">10</span></label>
-                <input type="range" id="iterations" min="1" max="50" step="1" value="10">
-            </div>
-            
-            <h2>Visualization</h2>
-            <div class="control-group">
-                <label>Color Mode:</label>
-                <select id="colorMode">
-                    <option value="grayscale">Grayscale</option>
-                    <option value="heatmap">Heatmap</option>
-                    <option value="rainbow">Rainbow</option>
-                    <option value="ocean">Ocean</option>
-                    <option value="fire">Fire</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label>Brightness: <span class="value-display" id="brightnessValue">1.0</span></label>
-                <input type="range" id="brightness" min="0.5" max="2.0" step="0.1" value="1.0">
-            </div>
-            
-            <div class="control-group">
-                <label>Contrast: <span class="value-display" id="contrastValue">1.0</span></label>
-                <input type="range" id="contrast" min="0.5" max="3.0" step="0.1" value="1.0">
-            </div>
-            
-            <h2>Canvas Size</h2>
-            <div class="size-inputs">
-                <input type="number" id="widthInput" value="800" min="256" max="4096">
-                <span>×</span>
-                <input type="number" id="heightInput" value="600" min="256" max="4096">
-            </div>
-            <button id="resizeBtn">Apply Size</button>
-            <div class="info-text">Warning: Large sizes may impact performance</div>
-            
-            <h2>Export</h2>
-            <div class="button-group">
-                <button id="exportPngBtn">Export as PNG</button>
-                <button id="exportHighResBtn">Export HD (2K)</button>
-                <button id="export4kBtn">Export 4K</button>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        // WebGL Reaction-Diffusion Simulator
-        class ReactionDiffusion {
-            constructor(canvas) {
-                this.canvas = canvas;
-                this.gl = canvas.getContext('webgl2', {
-                    preserveDrawingBuffer: true,
-                    antialias: false,
-                    premultipliedAlpha: false,
-                    alpha: false
-                });
 
-                if (!this.gl) {
-                    throw new Error('WebGL 2 not supported');
+            input[type="number"] {
+                width: 100px;
+                padding: 5px;
+                background: #1a1a1a;
+                border: 1px solid #444;
+                color: #e0e0e0;
+                border-radius: 3px;
+            }
+
+            .value-display {
+                display: inline-block;
+                min-width: 60px;
+                text-align: right;
+                color: #4a9eff;
+                font-family: "Courier New", monospace;
+            }
+
+            button {
+                background: #4a9eff;
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                margin: 5px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 0.9em;
+                transition: all 0.3s;
+            }
+
+            button:hover {
+                background: #3a8eef;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 5px rgba(74, 158, 255, 0.3);
+            }
+
+            button:active {
+                transform: translateY(0);
+            }
+
+            button.active {
+                background: #2a7edf;
+                box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            }
+
+            .button-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin: 10px 0;
+            }
+
+            .preset-button {
+                flex: 1;
+                min-width: 80px;
+            }
+
+            select {
+                width: 100%;
+                padding: 5px;
+                background: #1a1a1a;
+                border: 1px solid #444;
+                color: #e0e0e0;
+                border-radius: 3px;
+            }
+
+            .size-inputs {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+
+            .size-inputs input {
+                flex: 1;
+            }
+
+            .info-text {
+                font-size: 0.85em;
+                color: #888;
+                margin-top: 5px;
+            }
+
+            .fps-counter {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background: rgba(0, 0, 0, 0.7);
+                color: #4a9eff;
+                padding: 5px 10px;
+                border-radius: 3px;
+                font-family: "Courier New", monospace;
+                font-size: 0.9em;
+            }
+
+            .pattern-map {
+                width: 100%;
+                height: 150px;
+                background: #1a1a1a;
+                border: 1px solid #444;
+                border-radius: 5px;
+                margin: 10px 0;
+                cursor: crosshair;
+                position: relative;
+            }
+
+            .pattern-cursor {
+                position: absolute;
+                width: 8px;
+                height: 8px;
+                border: 2px solid #4a9eff;
+                border-radius: 50%;
+                pointer-events: none;
+                transform: translate(-50%, -50%);
+            }
+
+            @media (max-width: 768px) {
+                .container {
+                    flex-direction: column;
                 }
 
-                console.log('WebGL context created:', this.gl);
-                console.log('Context attributes:', this.gl.getContextAttributes());
-                
-                this.paused = false;
-                this.drawMode = 'add'; // 'add' or 'remove'
-                this.isDrawing = false;
-                this.lastMousePos = null;
-                
-                this.params = {
-                    feedRate: 0.055,
-                    killRate: 0.062,
-                    diffusionA: 1.0,
-                    diffusionB: 0.5,
-                    timeStep: 1.0,
-                    iterations: 10,
-                    brightness: 1.0,
-                    contrast: 1.0,
-                    colorMode: 'grayscale'
-                };
-                
-                this.init();
-            }
-            
-            init() {
-                const gl = this.gl;
-                
-                // Enable float textures
-                const ext = gl.getExtension('EXT_color_buffer_float');
-                if (!ext) {
-                    throw new Error('Float textures not supported');
+                .controls {
+                    width: 100%;
+                    max-height: 40vh;
                 }
-                
-                // Create shaders
-                this.createShaders();
-                
-                // Create textures and framebuffers
-                this.resize(this.canvas.width, this.canvas.height);
-                
-                // Create vertex buffer
-                const vertices = new Float32Array([
-                    -1, -1, 0, 0,
-                     1, -1, 1, 0,
-                    -1,  1, 0, 1,
-                     1,  1, 1, 1
-                ]);
-                
-                this.vertexBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-                
-                // Initialize with seed
-                this.seed();
             }
-            
-            createShaders() {
-                const gl = this.gl;
-                
-                // Vertex shader (shared)
-                const vertexShaderSource = `#version 300 es
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="canvas-container">
+                <canvas id="canvas"></canvas>
+                <div class="fps-counter">FPS: <span id="fps">0</span></div>
+            </div>
+            <div class="controls">
+                <h1>Reaction-Diffusion Explorer</h1>
+
+                <h2>Quick Actions</h2>
+                <div class="button-group">
+                    <button id="pauseBtn">Pause</button>
+                    <button id="clearBtn">Clear</button>
+                    <button id="seedBtn">Seed Center</button>
+                    <button id="randomBtn">Random Seed</button>
+                </div>
+
+                <h2>Mask Controls</h2>
+                <div class="button-group">
+                    <button id="maskEditBtn">Edit Mask Mode</button>
+                    <button id="clearMaskBtn">Clear Mask</button>
+                </div>
+                <div class="info-text">
+                    Draw (click) to block RD, Shift+Click to allow RD. Press M
+                    to toggle mask editing.
+                </div>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="useMaskCheck" checked> Use
+                        Mask
+                    </label>
+                    <label>
+                        <input type="checkbox" id="showMaskCheck" checked> Show
+                        Mask Overlay
+                    </label>
+                    <label>
+                        <input type="checkbox" id="blockDiffusionCheck" checked>
+                        Block Diffusion at Edges
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>Mask Mode:</label>
+                    <select id="maskMode">
+                        <option value="hard">Hard Clamp</option>
+                        <option value="soft">Soft Constraint</option>
+                        <option value="nopattern">No Pattern</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Soft Constraint Strength: <span
+                            class="value-display"
+                            id="maskLambdaValue"
+                        >0.1</span></label>
+                    <input
+                        type="range"
+                        id="maskLambda"
+                        min="0.01"
+                        max="1.0"
+                        step="0.01"
+                        value="0.1"
+                    >
+                </div>
+
+                <h2>Pattern Presets</h2>
+                <div class="button-group">
+                    <button class="preset-button" data-preset="mitosis">
+                        Mitosis
+                    </button>
+                    <button class="preset-button" data-preset="coral">
+                        Coral
+                    </button>
+                    <button class="preset-button" data-preset="spots">
+                        Spots
+                    </button>
+                    <button class="preset-button" data-preset="stripes">
+                        Stripes
+                    </button>
+                    <button class="preset-button" data-preset="spirals">
+                        Spirals
+                    </button>
+                    <button class="preset-button" data-preset="waves">
+                        Waves
+                    </button>
+                </div>
+
+                <h2>Pattern Map</h2>
+                <div class="pattern-map" id="patternMap">
+                    <div class="pattern-cursor" id="patternCursor"></div>
+                </div>
+                <div class="info-text">
+                    Click to select f (vertical) and k (horizontal) values
+                </div>
+
+                <h2>Parameters</h2>
+                <div class="control-group">
+                    <label>Feed Rate (f): <span
+                            class="value-display"
+                            id="feedValue"
+                        >0.055</span></label>
+                    <input
+                        type="range"
+                        id="feedRate"
+                        min="0.01"
+                        max="0.1"
+                        step="0.0001"
+                        value="0.055"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Kill Rate (k): <span
+                            class="value-display"
+                            id="killValue"
+                        >0.062</span></label>
+                    <input
+                        type="range"
+                        id="killRate"
+                        min="0.045"
+                        max="0.07"
+                        step="0.0001"
+                        value="0.062"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Diffusion A (DA): <span
+                            class="value-display"
+                            id="daValue"
+                        >1.0</span></label>
+                    <input
+                        type="range"
+                        id="diffusionA"
+                        min="0.5"
+                        max="1.5"
+                        step="0.01"
+                        value="1.0"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Diffusion B (DB): <span
+                            class="value-display"
+                            id="dbValue"
+                        >0.5</span></label>
+                    <input
+                        type="range"
+                        id="diffusionB"
+                        min="0.1"
+                        max="0.8"
+                        step="0.01"
+                        value="0.5"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Time Step (Δt): <span
+                            class="value-display"
+                            id="dtValue"
+                        >1.0</span></label>
+                    <input
+                        type="range"
+                        id="timeStep"
+                        min="0.5"
+                        max="2.0"
+                        step="0.1"
+                        value="1.0"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Iterations per Frame: <span
+                            class="value-display"
+                            id="iterValue"
+                        >10</span></label>
+                    <input
+                        type="range"
+                        id="iterations"
+                        min="1"
+                        max="50"
+                        step="1"
+                        value="10"
+                    >
+                </div>
+
+                <h2>Visualization</h2>
+                <div class="control-group">
+                    <label>Color Mode:</label>
+                    <select id="colorMode">
+                        <option value="grayscale">Grayscale</option>
+                        <option value="heatmap">Heatmap</option>
+                        <option value="rainbow">Rainbow</option>
+                        <option value="ocean">Ocean</option>
+                        <option value="fire">Fire</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Brightness: <span
+                            class="value-display"
+                            id="brightnessValue"
+                        >1.0</span></label>
+                    <input
+                        type="range"
+                        id="brightness"
+                        min="0.5"
+                        max="2.0"
+                        step="0.1"
+                        value="1.0"
+                    >
+                </div>
+
+                <div class="control-group">
+                    <label>Contrast: <span
+                            class="value-display"
+                            id="contrastValue"
+                        >1.0</span></label>
+                    <input
+                        type="range"
+                        id="contrast"
+                        min="0.5"
+                        max="3.0"
+                        step="0.1"
+                        value="1.0"
+                    >
+                </div>
+
+                <h2>Canvas Size</h2>
+                <div class="size-inputs">
+                    <input
+                        type="number"
+                        id="widthInput"
+                        value="800"
+                        min="256"
+                        max="4096"
+                    >
+                    <span>×</span>
+                    <input
+                        type="number"
+                        id="heightInput"
+                        value="600"
+                        min="256"
+                        max="4096"
+                    >
+                </div>
+                <button id="resizeBtn">Apply Size</button>
+                <div class="info-text">
+                    Warning: Large sizes may impact performance
+                </div>
+
+                <h2>Export</h2>
+                <div class="button-group">
+                    <button id="exportPngBtn">Export as PNG</button>
+                    <button id="exportHighResBtn">Export HD (2K)</button>
+                    <button id="export4kBtn">Export 4K</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // WebGL Reaction-Diffusion Simulator
+            class ReactionDiffusion {
+                constructor(canvas) {
+                    this.canvas = canvas;
+                    this.gl = canvas.getContext("webgl2", {
+                        preserveDrawingBuffer: true,
+                        antialias: false,
+                        premultipliedAlpha: false,
+                        alpha: false,
+                    });
+
+                    if (!this.gl) {
+                        throw new Error(
+                            "WebGL 2 not supported",
+                        );
+                    }
+
+                    console.log(
+                        "WebGL context created:",
+                        this.gl,
+                    );
+                    console.log(
+                        "Context attributes:",
+                        this.gl.getContextAttributes(),
+                    );
+
+                    this.paused = false;
+                    this.drawMode = "add"; // 'add' or 'remove'
+                    this.isDrawing = false;
+                    this.lastMousePos = null;
+                    this.maskEditMode = false; // Toggle between RD editing and mask editing
+
+                    this.params = {
+                        feedRate: 0.055,
+                        killRate: 0.062,
+                        diffusionA: 1.0,
+                        diffusionB: 0.5,
+                        timeStep: 1.0,
+                        iterations: 10,
+                        brightness: 1.0,
+                        contrast: 1.0,
+                        colorMode: "grayscale",
+                        // Mask parameters
+                        useMask: true,
+                        maskMode: "hard", // 'hard', 'soft', 'nopattern'
+                        maskLambda: 0.1, // Soft constraint strength
+                        maskClampA: 1.0,
+                        maskClampB: 0.0,
+                        blockDiffusion: true,
+                        showMask: true,
+                    };
+
+                    this.init();
+                }
+
+                init() {
+                    const gl = this.gl;
+
+                    // Enable float textures
+                    const ext = gl.getExtension(
+                        "EXT_color_buffer_float",
+                    );
+                    if (!ext) {
+                        throw new Error(
+                            "Float textures not supported",
+                        );
+                    }
+
+                    // Create shaders
+                    this.createShaders();
+
+                    // Create textures and framebuffers
+                    this.resize(
+                        this.canvas.width,
+                        this.canvas.height,
+                    );
+
+                    // Create vertex buffer
+                    const vertices = new Float32Array([
+                        -1,
+                        -1,
+                        0,
+                        0,
+                        1,
+                        -1,
+                        1,
+                        0,
+                        -1,
+                        1,
+                        0,
+                        1,
+                        1,
+                        1,
+                        1,
+                        1,
+                    ]);
+
+                    this.vertexBuffer = gl.createBuffer();
+                    gl.bindBuffer(
+                        gl.ARRAY_BUFFER,
+                        this.vertexBuffer,
+                    );
+                    gl.bufferData(
+                        gl.ARRAY_BUFFER,
+                        vertices,
+                        gl.STATIC_DRAW,
+                    );
+
+                    // Initialize mask (all 1s = fully active)
+                    this.initMask();
+
+                    // Initialize with seed
+                    this.seed();
+                }
+
+                createShaders() {
+                    const gl = this.gl;
+
+                    // Vertex shader (shared)
+                    const vertexShaderSource = `#version 300 es
                     in vec2 a_position;
                     in vec2 a_texCoord;
                     out vec2 v_texCoord;
@@ -392,26 +599,37 @@
                         v_texCoord = a_texCoord;
                     }
                 `;
-                
-                // Computation shader
-                const computeShaderSource = `#version 300 es
+
+                    // Computation shader
+                    const computeShaderSource = `#version 300 es
                     precision highp float;
-                    
+
                     in vec2 v_texCoord;
                     out vec4 fragColor;
-                    
+
                     uniform sampler2D u_texture;
+                    uniform sampler2D u_mask;
                     uniform vec2 u_texelSize;
                     uniform float u_feedRate;
                     uniform float u_killRate;
                     uniform float u_diffusionA;
                     uniform float u_diffusionB;
                     uniform float u_timeStep;
-                    
+
+                    // Mask parameters
+                    uniform bool u_useMask;
+                    uniform int u_maskMode; // 0=hard, 1=soft, 2=nopattern
+                    uniform float u_maskLambda;
+                    uniform vec2 u_maskClamp; // (A0, B0)
+                    uniform bool u_blockDiffusion;
+
                     void main() {
                         vec2 uv = v_texCoord;
                         vec2 texel = u_texelSize;
-                        
+
+                        // Sample mask (1.0 = active, 0.0 = blocked/protected)
+                        float m = u_useMask ? texture(u_mask, uv).r : 1.0;
+
                         // Sample current and neighboring cells
                         vec4 center = texture(u_texture, uv);
                         vec4 n = texture(u_texture, uv + vec2(0.0, texel.y));
@@ -422,52 +640,79 @@
                         vec4 nw = texture(u_texture, uv + vec2(-texel.x, texel.y));
                         vec4 se = texture(u_texture, uv + vec2(texel.x, -texel.y));
                         vec4 sw = texture(u_texture, uv + vec2(-texel.x, -texel.y));
-                        
+
                         float a = center.r;
                         float b = center.g;
-                        
-                        // Laplacian with weights: center=-1, adjacent=0.2, diagonal=0.05
-                        float laplaceA = (n.r + s.r + e.r + w.r) * 0.2 +
-                                        (ne.r + nw.r + se.r + sw.r) * 0.05 -
-                                        a;
-                        float laplaceB = (n.g + s.g + e.g + w.g) * 0.2 +
-                                        (ne.g + nw.g + se.g + sw.g) * 0.05 -
-                                        b;
-                        
+
+                        // Sample neighbor masks for diffusion blocking
+                        float mn  = u_useMask && u_blockDiffusion ? texture(u_mask, uv + vec2(0.0, texel.y)).r : 1.0;
+                        float ms  = u_useMask && u_blockDiffusion ? texture(u_mask, uv - vec2(0.0, texel.y)).r : 1.0;
+                        float me  = u_useMask && u_blockDiffusion ? texture(u_mask, uv + vec2(texel.x, 0.0)).r : 1.0;
+                        float mw  = u_useMask && u_blockDiffusion ? texture(u_mask, uv - vec2(texel.x, 0.0)).r : 1.0;
+                        float mne = u_useMask && u_blockDiffusion ? texture(u_mask, uv + vec2(texel.x, texel.y)).r : 1.0;
+                        float mnw = u_useMask && u_blockDiffusion ? texture(u_mask, uv + vec2(-texel.x, texel.y)).r : 1.0;
+                        float mse = u_useMask && u_blockDiffusion ? texture(u_mask, uv + vec2(texel.x, -texel.y)).r : 1.0;
+                        float msw = u_useMask && u_blockDiffusion ? texture(u_mask, uv - vec2(texel.x, texel.y)).r : 1.0;
+
+                        // Laplacian with mask-aware diffusion blocking
+                        float laplaceA = (n.r*mn + s.r*ms + e.r*me + w.r*mw) * 0.2 +
+                                        (ne.r*mne + nw.r*mnw + se.r*mse + sw.r*msw) * 0.05 -
+                                        a * (0.2*4.0 + 0.05*4.0) * m;
+                        float laplaceB = (n.g*mn + s.g*ms + e.g*me + w.g*mw) * 0.2 +
+                                        (ne.g*mne + nw.g*mnw + se.g*mse + sw.g*msw) * 0.05 -
+                                        b * (0.2*4.0 + 0.05*4.0) * m;
+
                         // Reaction-diffusion equations
                         float reaction = a * b * b;
                         float newA = a + (u_diffusionA * laplaceA - reaction + u_feedRate * (1.0 - a)) * u_timeStep;
                         float newB = b + (u_diffusionB * laplaceB + reaction - (u_killRate + u_feedRate) * b) * u_timeStep;
-                        
+
+                        // Apply mask constraints
+                        if (u_useMask) {
+                            if (u_maskMode == 0) {
+                                // Hard clamp - force protected regions to target values
+                                newA = mix(u_maskClamp.x, newA, m);
+                                newB = mix(u_maskClamp.y, newB, m);
+                            } else if (u_maskMode == 1) {
+                                // Soft constraint - pull toward target
+                                newA += (1.0 - m) * u_maskLambda * (u_maskClamp.x - newA);
+                                newB += (1.0 - m) * u_maskLambda * (u_maskClamp.y - newB);
+                            }
+                            // mode 2 (nopattern) would use spatial (F,k) - not implemented yet
+                        }
+
                         // Clamp values
                         newA = clamp(newA, 0.0, 1.0);
                         newB = clamp(newB, 0.0, 1.0);
-                        
+
                         fragColor = vec4(newA, newB, 0.0, 1.0);
                     }
                 `;
-                
-                // Display shader with color modes
-                const displayShaderSource = `#version 300 es
+
+                    // Display shader with color modes
+                    const displayShaderSource = `#version 300 es
                     precision highp float;
-                    
+
                     in vec2 v_texCoord;
                     out vec4 fragColor;
-                    
+
                     uniform sampler2D u_texture;
+                    uniform sampler2D u_mask;
                     uniform float u_brightness;
                     uniform float u_contrast;
                     uniform int u_colorMode;
-                    
+                    uniform bool u_showMask;
+
                     vec3 hsv2rgb(vec3 c) {
                         vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
                         vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
                         return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
                     }
-                    
+
                     void main() {
                         vec2 ab = texture(u_texture, v_texCoord).rg;
                         float b = ab.g;
+                        float maskValue = texture(u_mask, v_texCoord).r;
 
                         // Visualize B concentration
                         float value = b;
@@ -491,12 +736,17 @@
                             color = vec3(value * 2.0, value * value * 1.5, value * value * value);
                         }
 
+                        // Overlay mask visualization (red tint for blocked areas)
+                        if (u_showMask) {
+                            color = mix(vec3(1.0, 0.2, 0.2), color, maskValue * 0.7 + 0.3);
+                        }
+
                         fragColor = vec4(color, 1.0);
                     }
                 `;
-                
-                // Seed shader for drawing
-                const seedShaderSource = `#version 300 es
+
+                    // Seed shader for drawing
+                    const seedShaderSource = `#version 300 es
                     precision highp float;
                     
                     in vec2 v_texCoord;
@@ -525,781 +775,1873 @@
                         fragColor = vec4(ab.r, ab.g, 0.0, 1.0);
                     }
                 `;
-                
-                // Compile shaders
-                this.computeProgram = this.createProgram(vertexShaderSource, computeShaderSource);
-                this.displayProgram = this.createProgram(vertexShaderSource, displayShaderSource);
-                this.seedProgram = this.createProgram(vertexShaderSource, seedShaderSource);
-            }
-            
-            createProgram(vertexSource, fragmentSource) {
-                const gl = this.gl;
 
-                const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexSource);
-                const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
+                    // Mask editing shader
+                    const maskShaderSource = `#version 300 es
+                    precision highp float;
 
-                const program = gl.createProgram();
-                gl.attachShader(program, vertexShader);
-                gl.attachShader(program, fragmentShader);
-                gl.linkProgram(program);
+                    in vec2 v_texCoord;
+                    out vec4 fragColor;
 
-                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-                    const info = gl.getProgramInfoLog(program);
-                    console.error('Program link error:', info);
-                    throw new Error('Program linking failed: ' + info);
-                }
+                    uniform sampler2D u_texture;
+                    uniform vec2 u_mousePos;
+                    uniform float u_brushSize;
+                    uniform int u_drawMode;
 
-                return program;
-            }
-            
-            createShader(type, source) {
-                const gl = this.gl;
-                const shader = gl.createShader(type);
-                gl.shaderSource(shader, source);
-                gl.compileShader(shader);
+                    void main() {
+                        float mask = texture(u_texture, v_texCoord).r;
+                        float dist = length(v_texCoord - u_mousePos);
 
-                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                    const info = gl.getShaderInfoLog(shader);
-                    console.error('Shader compile error:', info);
-                    console.error('Shader source:', source);
-                    throw new Error('Shader compilation failed: ' + info);
-                }
+                        if (dist < u_brushSize) {
+                            float strength = 1.0 - (dist / u_brushSize);
+                            strength = smoothstep(0.0, 1.0, strength);
 
-                return shader;
-            }
-            
-            createTexture(width, height) {
-                const gl = this.gl;
-                const texture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
-
-                // Use NEAREST filtering for float textures (LINEAR requires OES_texture_float_linear extension)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                return texture;
-            }
-            
-            createFramebuffer(texture) {
-                const gl = this.gl;
-                const framebuffer = gl.createFramebuffer();
-                gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-
-                // Check framebuffer status
-                const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-                if (status !== gl.FRAMEBUFFER_COMPLETE) {
-                    console.error('Framebuffer incomplete:', status);
-                    throw new Error('Framebuffer is not complete: ' + status);
-                }
-
-                return framebuffer;
-            }
-            
-            resize(width, height) {
-                const gl = this.gl;
-
-                this.width = width;
-                this.height = height;
-
-                // Delete old textures if they exist
-                if (this.textureA) gl.deleteTexture(this.textureA);
-                if (this.textureB) gl.deleteTexture(this.textureB);
-                if (this.framebufferA) gl.deleteFramebuffer(this.framebufferA);
-                if (this.framebufferB) gl.deleteFramebuffer(this.framebufferB);
-
-                // Create ping-pong textures
-                this.textureA = this.createTexture(width, height);
-                this.textureB = this.createTexture(width, height);
-
-                this.framebufferA = this.createFramebuffer(this.textureA);
-                this.framebufferB = this.createFramebuffer(this.textureB);
-
-                this.currentTexture = this.textureA;
-                this.currentFramebuffer = this.framebufferA;
-
-                console.log('Resized to', width, 'x', height, 'currentTexture:', this.currentTexture);
-
-                gl.viewport(0, 0, width, height);
-            }
-            
-            seed(pattern = 'center') {
-                const gl = this.gl;
-                const width = this.width;
-                const height = this.height;
-
-                // Create initial data
-                const data = new Float32Array(width * height * 4);
-
-                for (let i = 0; i < width * height; i++) {
-                    data[i * 4] = 1.0;     // A = 1
-                    data[i * 4 + 1] = 0.0; // B = 0
-                    data[i * 4 + 2] = 0.0;
-                    data[i * 4 + 3] = 1.0;
-                }
-
-                let cx = 0, cy = 0; // Declare outside for logging
-
-                // Add seed patterns
-                if (pattern === 'center') {
-                    cx = Math.floor(width / 2);
-                    cy = Math.floor(height / 2);
-                    const radius = 20; // Make it much larger and visible
-
-                    for (let y = -radius; y <= radius; y++) {
-                        for (let x = -radius; x <= radius; x++) {
-                            if (x * x + y * y <= radius * radius) {
-                                const idx = ((cy + y) * width + (cx + x)) * 4;
-                                data[idx + 1] = 1.0; // Set B = 1
+                            if (u_drawMode == 1) { // Add to mask (block RD)
+                                mask = mix(mask, 0.0, strength);
+                            } else { // Remove from mask (allow RD)
+                                mask = mix(mask, 1.0, strength);
                             }
                         }
+
+                        fragColor = vec4(mask, 0.0, 0.0, 1.0);
                     }
-                    console.log('Seeded center at', cx, cy, 'with radius', radius);
-                } else if (pattern === 'random') {
-                    const numSeeds = 20;
-                    for (let i = 0; i < numSeeds; i++) {
-                        const x = Math.floor(Math.random() * width);
-                        const y = Math.floor(Math.random() * height);
-                        const radius = 2 + Math.floor(Math.random() * 5);
-                        
-                        for (let dy = -radius; dy <= radius; dy++) {
-                            for (let dx = -radius; dx <= radius; dx++) {
-                                if (dx * dx + dy * dy <= radius * radius) {
-                                    const px = Math.min(Math.max(x + dx, 0), width - 1);
-                                    const py = Math.min(Math.max(y + dy, 0), height - 1);
-                                    const idx = (py * width + px) * 4;
-                                    data[idx + 1] = 1.0;
+                `;
+
+                    // Compile shaders
+                    this.computeProgram = this.createProgram(
+                        vertexShaderSource,
+                        computeShaderSource,
+                    );
+                    this.displayProgram = this.createProgram(
+                        vertexShaderSource,
+                        displayShaderSource,
+                    );
+                    this.seedProgram = this.createProgram(
+                        vertexShaderSource,
+                        seedShaderSource,
+                    );
+                    this.maskProgram = this.createProgram(
+                        vertexShaderSource,
+                        maskShaderSource,
+                    );
+                }
+
+                createProgram(vertexSource, fragmentSource) {
+                    const gl = this.gl;
+
+                    const vertexShader = this.createShader(
+                        gl.VERTEX_SHADER,
+                        vertexSource,
+                    );
+                    const fragmentShader = this.createShader(
+                        gl.FRAGMENT_SHADER,
+                        fragmentSource,
+                    );
+
+                    const program = gl.createProgram();
+                    gl.attachShader(program, vertexShader);
+                    gl.attachShader(program, fragmentShader);
+                    gl.linkProgram(program);
+
+                    if (
+                        !gl.getProgramParameter(
+                            program,
+                            gl.LINK_STATUS,
+                        )
+                    ) {
+                        const info = gl.getProgramInfoLog(
+                            program,
+                        );
+                        console.error(
+                            "Program link error:",
+                            info,
+                        );
+                        throw new Error(
+                            "Program linking failed: " + info,
+                        );
+                    }
+
+                    return program;
+                }
+
+                createShader(type, source) {
+                    const gl = this.gl;
+                    const shader = gl.createShader(type);
+                    gl.shaderSource(shader, source);
+                    gl.compileShader(shader);
+
+                    if (
+                        !gl.getShaderParameter(
+                            shader,
+                            gl.COMPILE_STATUS,
+                        )
+                    ) {
+                        const info = gl.getShaderInfoLog(
+                            shader,
+                        );
+                        console.error(
+                            "Shader compile error:",
+                            info,
+                        );
+                        console.error("Shader source:", source);
+                        throw new Error(
+                            "Shader compilation failed: " +
+                                info,
+                        );
+                    }
+
+                    return shader;
+                }
+
+                createTexture(width, height) {
+                    const gl = this.gl;
+                    const texture = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, texture);
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        null,
+                    );
+
+                    // Use NEAREST filtering for float textures (LINEAR requires OES_texture_float_linear extension)
+                    gl.texParameteri(
+                        gl.TEXTURE_2D,
+                        gl.TEXTURE_MIN_FILTER,
+                        gl.NEAREST,
+                    );
+                    gl.texParameteri(
+                        gl.TEXTURE_2D,
+                        gl.TEXTURE_MAG_FILTER,
+                        gl.NEAREST,
+                    );
+                    gl.texParameteri(
+                        gl.TEXTURE_2D,
+                        gl.TEXTURE_WRAP_S,
+                        gl.CLAMP_TO_EDGE,
+                    );
+                    gl.texParameteri(
+                        gl.TEXTURE_2D,
+                        gl.TEXTURE_WRAP_T,
+                        gl.CLAMP_TO_EDGE,
+                    );
+                    return texture;
+                }
+
+                createFramebuffer(texture) {
+                    const gl = this.gl;
+                    const framebuffer = gl.createFramebuffer();
+                    gl.bindFramebuffer(
+                        gl.FRAMEBUFFER,
+                        framebuffer,
+                    );
+                    gl.framebufferTexture2D(
+                        gl.FRAMEBUFFER,
+                        gl.COLOR_ATTACHMENT0,
+                        gl.TEXTURE_2D,
+                        texture,
+                        0,
+                    );
+
+                    // Check framebuffer status
+                    const status = gl.checkFramebufferStatus(
+                        gl.FRAMEBUFFER,
+                    );
+                    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+                        console.error(
+                            "Framebuffer incomplete:",
+                            status,
+                        );
+                        throw new Error(
+                            "Framebuffer is not complete: " +
+                                status,
+                        );
+                    }
+
+                    return framebuffer;
+                }
+
+                resize(width, height) {
+                    const gl = this.gl;
+
+                    this.width = width;
+                    this.height = height;
+
+                    // Delete old textures if they exist
+                    if (this.textureA) {
+                        gl.deleteTexture(this.textureA);
+                    }
+                    if (this.textureB) {
+                        gl.deleteTexture(this.textureB);
+                    }
+                    if (this.framebufferA) {
+                        gl.deleteFramebuffer(this.framebufferA);
+                    }
+                    if (this.framebufferB) {
+                        gl.deleteFramebuffer(this.framebufferB);
+                    }
+                    if (this.maskTextureA) {
+                        gl.deleteTexture(this.maskTextureA);
+                    }
+                    if (this.maskTextureB) {
+                        gl.deleteTexture(this.maskTextureB);
+                    }
+                    if (this.maskFramebufferA) {
+                        gl.deleteFramebuffer(
+                            this.maskFramebufferA,
+                        );
+                    }
+                    if (this.maskFramebufferB) {
+                        gl.deleteFramebuffer(
+                            this.maskFramebufferB,
+                        );
+                    }
+
+                    // Create ping-pong textures
+                    this.textureA = this.createTexture(
+                        width,
+                        height,
+                    );
+                    this.textureB = this.createTexture(
+                        width,
+                        height,
+                    );
+
+                    this.framebufferA = this.createFramebuffer(
+                        this.textureA,
+                    );
+                    this.framebufferB = this.createFramebuffer(
+                        this.textureB,
+                    );
+
+                    // Create mask ping-pong textures
+                    this.maskTextureA = this.createTexture(
+                        width,
+                        height,
+                    );
+                    this.maskTextureB = this.createTexture(
+                        width,
+                        height,
+                    );
+
+                    this.maskFramebufferA = this
+                        .createFramebuffer(this.maskTextureA);
+                    this.maskFramebufferB = this
+                        .createFramebuffer(this.maskTextureB);
+
+                    this.currentTexture = this.textureA;
+                    this.currentFramebuffer = this.framebufferA;
+
+                    this.currentMaskTexture = this.maskTextureA;
+                    this.currentMaskFramebuffer =
+                        this.maskFramebufferA;
+
+                    console.log(
+                        "Resized to",
+                        width,
+                        "x",
+                        height,
+                        "currentTexture:",
+                        this.currentTexture,
+                    );
+
+                    gl.viewport(0, 0, width, height);
+                }
+
+                seed(pattern = "center") {
+                    const gl = this.gl;
+                    const width = this.width;
+                    const height = this.height;
+
+                    // Create initial data
+                    const data = new Float32Array(
+                        width * height * 4,
+                    );
+
+                    for (let i = 0; i < width * height; i++) {
+                        data[i * 4] = 1.0; // A = 1
+                        data[i * 4 + 1] = 0.0; // B = 0
+                        data[i * 4 + 2] = 0.0;
+                        data[i * 4 + 3] = 1.0;
+                    }
+
+                    let cx = 0, cy = 0; // Declare outside for logging
+
+                    // Add seed patterns
+                    if (pattern === "center") {
+                        cx = Math.floor(width / 2);
+                        cy = Math.floor(height / 2);
+                        const radius = 20; // Make it much larger and visible
+
+                        for (
+                            let y = -radius;
+                            y <= radius;
+                            y++
+                        ) {
+                            for (
+                                let x = -radius;
+                                x <= radius;
+                                x++
+                            ) {
+                                if (
+                                    x * x + y * y <=
+                                        radius * radius
+                                ) {
+                                    const idx =
+                                        ((cy + y) * width +
+                                            (cx + x)) * 4;
+                                    data[idx + 1] = 1.0; // Set B = 1
+                                }
+                            }
+                        }
+                        console.log(
+                            "Seeded center at",
+                            cx,
+                            cy,
+                            "with radius",
+                            radius,
+                        );
+                    } else if (pattern === "random") {
+                        const numSeeds = 20;
+                        for (let i = 0; i < numSeeds; i++) {
+                            const x = Math.floor(
+                                Math.random() * width,
+                            );
+                            const y = Math.floor(
+                                Math.random() * height,
+                            );
+                            const radius = 2 +
+                                Math.floor(Math.random() * 5);
+
+                            for (
+                                let dy = -radius;
+                                dy <= radius;
+                                dy++
+                            ) {
+                                for (
+                                    let dx = -radius;
+                                    dx <= radius;
+                                    dx++
+                                ) {
+                                    if (
+                                        dx * dx + dy * dy <=
+                                            radius * radius
+                                    ) {
+                                        const px = Math.min(
+                                            Math.max(x + dx, 0),
+                                            width - 1,
+                                        );
+                                        const py = Math.min(
+                                            Math.max(y + dy, 0),
+                                            height - 1,
+                                        );
+                                        const idx =
+                                            (py * width + px) *
+                                            4;
+                                        data[idx + 1] = 1.0;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                
-                // Upload to texture
-                gl.bindTexture(gl.TEXTURE_2D, this.textureA);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
-                gl.bindTexture(gl.TEXTURE_2D, this.textureB);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
 
-                // Verify upload by checking a few values
-                console.log('Uploaded data sample (first pixel):', data[0], data[1], data[2], data[3]);
-                if (pattern === 'center') {
-                    console.log('Center pixel should have B=1:', data[((cy * width + cx) * 4) + 1]);
-                }
+                    // Upload to texture
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.textureA,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.textureB,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
 
-                const err = gl.getError();
-                if (err !== gl.NO_ERROR) {
-                    console.error('WebGL error after texture upload:', err);
-                }
+                    // Verify upload by checking a few values
+                    console.log(
+                        "Uploaded data sample (first pixel):",
+                        data[0],
+                        data[1],
+                        data[2],
+                        data[3],
+                    );
+                    if (pattern === "center") {
+                        console.log(
+                            "Center pixel should have B=1:",
+                            data[((cy * width + cx) * 4) + 1],
+                        );
+                    }
 
-                // DEBUG: Try to read back a pixel from the texture to verify upload
-                const fb = gl.createFramebuffer();
-                gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.textureA, 0);
-                const readback = new Float32Array(4);
-                gl.readPixels(cx, cy, 1, 1, gl.RGBA, gl.FLOAT, readback);
-                console.log('Readback from center of textureA:', readback);
-                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                gl.deleteFramebuffer(fb);
-            }
-            
-            clear() {
-                const gl = this.gl;
-                const width = this.width;
-                const height = this.height;
-                
-                const data = new Float32Array(width * height * 4);
-                for (let i = 0; i < width * height; i++) {
-                    data[i * 4] = 1.0;     // A = 1
-                    data[i * 4 + 1] = 0.0; // B = 0
-                    data[i * 4 + 2] = 0.0;
-                    data[i * 4 + 3] = 1.0;
-                }
-                
-                gl.bindTexture(gl.TEXTURE_2D, this.textureA);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
-                gl.bindTexture(gl.TEXTURE_2D, this.textureB);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
-            }
-            
-            draw(x, y, mode = 'add') {
-                const gl = this.gl;
-                
-                // Use seed program to draw
-                gl.useProgram(this.seedProgram);
-                
-                // Setup attributes
-                const posLoc = gl.getAttribLocation(this.seedProgram, 'a_position');
-                const texLoc = gl.getAttribLocation(this.seedProgram, 'a_texCoord');
-                
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                gl.enableVertexAttribArray(posLoc);
-                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
-                gl.enableVertexAttribArray(texLoc);
-                gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
-                
-                // Set uniforms
-                gl.uniform1i(gl.getUniformLocation(this.seedProgram, 'u_texture'), 0);
-                gl.uniform2f(gl.getUniformLocation(this.seedProgram, 'u_mousePos'), x, y);
-                gl.uniform1f(gl.getUniformLocation(this.seedProgram, 'u_brushSize'), 0.02);
-                gl.uniform1i(gl.getUniformLocation(this.seedProgram, 'u_drawMode'), mode === 'add' ? 1 : 0);
-                
-                // Bind current texture
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
-                
-                // Draw to other framebuffer
-                const targetFramebuffer = this.currentTexture === this.textureA ? this.framebufferB : this.framebufferA;
-                const targetTexture = this.currentTexture === this.textureA ? this.textureB : this.textureA;
-                
-                gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
-                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-                
-                // Swap
-                this.currentTexture = targetTexture;
-                this.currentFramebuffer = targetFramebuffer;
-            }
-            
-            update() {
-                if (this.paused) return;
+                    const err = gl.getError();
+                    if (err !== gl.NO_ERROR) {
+                        console.error(
+                            "WebGL error after texture upload:",
+                            err,
+                        );
+                    }
 
-                if (!this._updateCount) this._updateCount = 0;
-                this._updateCount++;
-                if (this._updateCount % 60 === 0) {
-                    console.log('Update called', this._updateCount, 'times (should be 0 when paused!)');
+                    // DEBUG: Try to read back a pixel from the texture to verify upload
+                    const fb = gl.createFramebuffer();
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+                    gl.framebufferTexture2D(
+                        gl.FRAMEBUFFER,
+                        gl.COLOR_ATTACHMENT0,
+                        gl.TEXTURE_2D,
+                        this.textureA,
+                        0,
+                    );
+                    const readback = new Float32Array(4);
+                    gl.readPixels(
+                        cx,
+                        cy,
+                        1,
+                        1,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        readback,
+                    );
+                    console.log(
+                        "Readback from center of textureA:",
+                        readback,
+                    );
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                    gl.deleteFramebuffer(fb);
                 }
 
-                const gl = this.gl;
-                
-                for (let i = 0; i < this.params.iterations; i++) {
-                    // Use compute program
-                    gl.useProgram(this.computeProgram);
-                    
+                clear() {
+                    const gl = this.gl;
+                    const width = this.width;
+                    const height = this.height;
+
+                    const data = new Float32Array(
+                        width * height * 4,
+                    );
+                    for (let i = 0; i < width * height; i++) {
+                        data[i * 4] = 1.0; // A = 1
+                        data[i * 4 + 1] = 0.0; // B = 0
+                        data[i * 4 + 2] = 0.0;
+                        data[i * 4 + 3] = 1.0;
+                    }
+
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.textureA,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.textureB,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                }
+
+                initMask() {
+                    const gl = this.gl;
+                    const width = this.width;
+                    const height = this.height;
+
+                    // Initialize mask to all 1s (fully active, no blocking)
+                    const data = new Float32Array(
+                        width * height * 4,
+                    );
+                    for (let i = 0; i < width * height; i++) {
+                        data[i * 4] = 1.0; // Mask = 1 (active)
+                        data[i * 4 + 1] = 0.0;
+                        data[i * 4 + 2] = 0.0;
+                        data[i * 4 + 3] = 1.0;
+                    }
+
+                    // Initialize both mask textures
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.maskTextureA,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.maskTextureB,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                }
+
+                clearMask() {
+                    // Reset mask to all active
+                    this.initMask();
+                }
+
+                editMask(x, y, mode = "add") {
+                    const gl = this.gl;
+
+                    // Use mask program to edit
+                    gl.useProgram(this.maskProgram);
+
                     // Setup attributes
-                    const posLoc = gl.getAttribLocation(this.computeProgram, 'a_position');
-                    const texLoc = gl.getAttribLocation(this.computeProgram, 'a_texCoord');
-                    
-                    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                    const posLoc = gl.getAttribLocation(
+                        this.maskProgram,
+                        "a_position",
+                    );
+                    const texLoc = gl.getAttribLocation(
+                        this.maskProgram,
+                        "a_texCoord",
+                    );
+
+                    gl.bindBuffer(
+                        gl.ARRAY_BUFFER,
+                        this.vertexBuffer,
+                    );
                     gl.enableVertexAttribArray(posLoc);
-                    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
+                    gl.vertexAttribPointer(
+                        posLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        0,
+                    );
                     gl.enableVertexAttribArray(texLoc);
-                    gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
-                    
+                    gl.vertexAttribPointer(
+                        texLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        8,
+                    );
+
                     // Set uniforms
-                    gl.uniform1i(gl.getUniformLocation(this.computeProgram, 'u_texture'), 0);
-                    gl.uniform2f(gl.getUniformLocation(this.computeProgram, 'u_texelSize'), 
-                               1.0 / this.width, 1.0 / this.height);
-                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_feedRate'), this.params.feedRate);
-                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_killRate'), this.params.killRate);
-                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_diffusionA'), this.params.diffusionA);
-                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_diffusionB'), this.params.diffusionB);
-                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_timeStep'), this.params.timeStep);
-                    
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.maskProgram,
+                            "u_texture",
+                        ),
+                        0,
+                    );
+                    gl.uniform2f(
+                        gl.getUniformLocation(
+                            this.maskProgram,
+                            "u_mousePos",
+                        ),
+                        x,
+                        y,
+                    );
+                    gl.uniform1f(
+                        gl.getUniformLocation(
+                            this.maskProgram,
+                            "u_brushSize",
+                        ),
+                        0.03,
+                    );
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.maskProgram,
+                            "u_drawMode",
+                        ),
+                        mode === "add" ? 1 : 0,
+                    );
+
+                    // Bind current mask texture (read from this)
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.currentMaskTexture,
+                    );
+
+                    // Determine target (write to the other one)
+                    const targetFramebuffer =
+                        this.currentMaskTexture ===
+                                this.maskTextureA
+                            ? this.maskFramebufferB
+                            : this.maskFramebufferA;
+                    const targetTexture =
+                        this.currentMaskTexture ===
+                                this.maskTextureA
+                            ? this.maskTextureB
+                            : this.maskTextureA;
+
+                    // Draw to target mask framebuffer
+                    gl.bindFramebuffer(
+                        gl.FRAMEBUFFER,
+                        targetFramebuffer,
+                    );
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+                    // Swap mask textures
+                    this.currentMaskTexture = targetTexture;
+                    this.currentMaskFramebuffer =
+                        targetFramebuffer;
+
+                    // Restore state
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                }
+
+                draw(x, y, mode = "add") {
+                    const gl = this.gl;
+
+                    // Use seed program to draw
+                    gl.useProgram(this.seedProgram);
+
+                    // Setup attributes
+                    const posLoc = gl.getAttribLocation(
+                        this.seedProgram,
+                        "a_position",
+                    );
+                    const texLoc = gl.getAttribLocation(
+                        this.seedProgram,
+                        "a_texCoord",
+                    );
+
+                    gl.bindBuffer(
+                        gl.ARRAY_BUFFER,
+                        this.vertexBuffer,
+                    );
+                    gl.enableVertexAttribArray(posLoc);
+                    gl.vertexAttribPointer(
+                        posLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        0,
+                    );
+                    gl.enableVertexAttribArray(texLoc);
+                    gl.vertexAttribPointer(
+                        texLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        8,
+                    );
+
+                    // Set uniforms
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.seedProgram,
+                            "u_texture",
+                        ),
+                        0,
+                    );
+                    gl.uniform2f(
+                        gl.getUniformLocation(
+                            this.seedProgram,
+                            "u_mousePos",
+                        ),
+                        x,
+                        y,
+                    );
+                    gl.uniform1f(
+                        gl.getUniformLocation(
+                            this.seedProgram,
+                            "u_brushSize",
+                        ),
+                        0.02,
+                    );
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.seedProgram,
+                            "u_drawMode",
+                        ),
+                        mode === "add" ? 1 : 0,
+                    );
+
                     // Bind current texture
                     gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
-                    
-                    // Render to other framebuffer
-                    const targetFramebuffer = this.currentTexture === this.textureA ? 
-                                            this.framebufferB : this.framebufferA;
-                    const targetTexture = this.currentTexture === this.textureA ? 
-                                        this.textureB : this.textureA;
-                    
-                    gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.currentTexture,
+                    );
+
+                    // Draw to other framebuffer
+                    const targetFramebuffer =
+                        this.currentTexture === this.textureA
+                            ? this.framebufferB
+                            : this.framebufferA;
+                    const targetTexture =
+                        this.currentTexture === this.textureA
+                            ? this.textureB
+                            : this.textureA;
+
+                    gl.bindFramebuffer(
+                        gl.FRAMEBUFFER,
+                        targetFramebuffer,
+                    );
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-                    
-                    // Swap textures
+
+                    // Swap
                     this.currentTexture = targetTexture;
                     this.currentFramebuffer = targetFramebuffer;
                 }
+
+                update() {
+                    if (this.paused) return;
+
+                    if (!this._updateCount) {
+                        this._updateCount = 0;
+                    }
+                    this._updateCount++;
+                    if (this._updateCount % 60 === 0) {
+                        console.log(
+                            "Update called",
+                            this._updateCount,
+                            "times (should be 0 when paused!)",
+                        );
+                    }
+
+                    const gl = this.gl;
+
+                    for (
+                        let i = 0;
+                        i < this.params.iterations;
+                        i++
+                    ) {
+                        // Use compute program
+                        gl.useProgram(this.computeProgram);
+
+                        // Setup attributes
+                        const posLoc = gl.getAttribLocation(
+                            this.computeProgram,
+                            "a_position",
+                        );
+                        const texLoc = gl.getAttribLocation(
+                            this.computeProgram,
+                            "a_texCoord",
+                        );
+
+                        gl.bindBuffer(
+                            gl.ARRAY_BUFFER,
+                            this.vertexBuffer,
+                        );
+                        gl.enableVertexAttribArray(posLoc);
+                        gl.vertexAttribPointer(
+                            posLoc,
+                            2,
+                            gl.FLOAT,
+                            false,
+                            16,
+                            0,
+                        );
+                        gl.enableVertexAttribArray(texLoc);
+                        gl.vertexAttribPointer(
+                            texLoc,
+                            2,
+                            gl.FLOAT,
+                            false,
+                            16,
+                            8,
+                        );
+
+                        // Set uniforms
+                        gl.uniform1i(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_texture",
+                            ),
+                            0,
+                        );
+                        gl.uniform1i(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_mask",
+                            ),
+                            1,
+                        );
+                        gl.uniform2f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_texelSize",
+                            ),
+                            1.0 / this.width,
+                            1.0 / this.height,
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_feedRate",
+                            ),
+                            this.params.feedRate,
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_killRate",
+                            ),
+                            this.params.killRate,
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_diffusionA",
+                            ),
+                            this.params.diffusionA,
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_diffusionB",
+                            ),
+                            this.params.diffusionB,
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_timeStep",
+                            ),
+                            this.params.timeStep,
+                        );
+
+                        // Mask uniforms
+                        gl.uniform1i(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_useMask",
+                            ),
+                            this.params.useMask ? 1 : 0,
+                        );
+                        const maskModeMap = {
+                            "hard": 0,
+                            "soft": 1,
+                            "nopattern": 2,
+                        };
+                        gl.uniform1i(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_maskMode",
+                            ),
+                            maskModeMap[this.params.maskMode],
+                        );
+                        gl.uniform1f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_maskLambda",
+                            ),
+                            this.params.maskLambda,
+                        );
+                        gl.uniform2f(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_maskClamp",
+                            ),
+                            this.params.maskClampA,
+                            this.params.maskClampB,
+                        );
+                        gl.uniform1i(
+                            gl.getUniformLocation(
+                                this.computeProgram,
+                                "u_blockDiffusion",
+                            ),
+                            this.params.blockDiffusion ? 1 : 0,
+                        );
+
+                        // Bind current texture
+                        gl.activeTexture(gl.TEXTURE0);
+                        gl.bindTexture(
+                            gl.TEXTURE_2D,
+                            this.currentTexture,
+                        );
+
+                        // Bind current mask texture
+                        gl.activeTexture(gl.TEXTURE1);
+                        gl.bindTexture(
+                            gl.TEXTURE_2D,
+                            this.currentMaskTexture,
+                        );
+
+                        // Render to other framebuffer
+                        const targetFramebuffer =
+                            this.currentTexture ===
+                                    this.textureA
+                                ? this.framebufferB
+                                : this.framebufferA;
+                        const targetTexture =
+                            this.currentTexture ===
+                                    this.textureA
+                                ? this.textureB
+                                : this.textureA;
+
+                        gl.bindFramebuffer(
+                            gl.FRAMEBUFFER,
+                            targetFramebuffer,
+                        );
+                        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+                        // Swap textures
+                        this.currentTexture = targetTexture;
+                        this.currentFramebuffer =
+                            targetFramebuffer;
+                    }
+                }
+
+                render() {
+                    const gl = this.gl;
+
+                    if (!this._renderCount) {
+                        this._renderCount = 0;
+                    }
+                    this._renderCount++;
+                    if (this._renderCount % 60 === 0) {
+                        console.log(
+                            "Render called",
+                            this._renderCount,
+                            "times",
+                        );
+                    }
+
+                    // Use display program
+                    gl.useProgram(this.displayProgram);
+
+                    if (this._renderCount === 1) {
+                        console.log(
+                            "First render - program:",
+                            this.displayProgram,
+                        );
+                        console.log(
+                            "Current program:",
+                            gl.getParameter(gl.CURRENT_PROGRAM),
+                        );
+                    }
+
+                    // Setup attributes
+                    const posLoc = gl.getAttribLocation(
+                        this.displayProgram,
+                        "a_position",
+                    );
+                    const texLoc = gl.getAttribLocation(
+                        this.displayProgram,
+                        "a_texCoord",
+                    );
+
+                    if (this._renderCount === 1) {
+                        console.log(
+                            "Attribute locations - position:",
+                            posLoc,
+                            "texCoord:",
+                            texLoc,
+                        );
+                    }
+
+                    gl.bindBuffer(
+                        gl.ARRAY_BUFFER,
+                        this.vertexBuffer,
+                    );
+                    gl.enableVertexAttribArray(posLoc);
+                    gl.vertexAttribPointer(
+                        posLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        0,
+                    );
+                    gl.enableVertexAttribArray(texLoc);
+                    gl.vertexAttribPointer(
+                        texLoc,
+                        2,
+                        gl.FLOAT,
+                        false,
+                        16,
+                        8,
+                    );
+
+                    // Set uniforms
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_texture",
+                        ),
+                        0,
+                    );
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_mask",
+                        ),
+                        1,
+                    );
+                    gl.uniform1f(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_brightness",
+                        ),
+                        this.params.brightness,
+                    );
+                    gl.uniform1f(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_contrast",
+                        ),
+                        this.params.contrast,
+                    );
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_showMask",
+                        ),
+                        this.params.showMask ? 1 : 0,
+                    );
+
+                    const colorModeMap = {
+                        "grayscale": 0,
+                        "heatmap": 1,
+                        "rainbow": 2,
+                        "ocean": 3,
+                        "fire": 4,
+                    };
+                    gl.uniform1i(
+                        gl.getUniformLocation(
+                            this.displayProgram,
+                            "u_colorMode",
+                        ),
+                        colorModeMap[this.params.colorMode],
+                    );
+
+                    // Bind current texture
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.currentTexture,
+                    );
+
+                    // Bind current mask texture
+                    gl.activeTexture(gl.TEXTURE1);
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.currentMaskTexture,
+                    );
+
+                    // Debug: log which texture we're using
+                    if (this._renderCount <= 3) {
+                        console.log(
+                            "Render #" + this._renderCount +
+                                " - currentTexture === textureA?",
+                            this.currentTexture ===
+                                this.textureA,
+                        );
+                        console.log(
+                            "Bound texture before bind:",
+                            gl.getParameter(
+                                gl.TEXTURE_BINDING_2D,
+                            ),
+                        );
+                    }
+
+                    // Render to canvas
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                    gl.viewport(
+                        0,
+                        0,
+                        this.canvas.width,
+                        this.canvas.height,
+                    );
+
+                    // DON'T clear - we want to draw over whatever is there
+                    // gl.clearColor(0.0, 0.0, 0.5, 1.0);
+                    // gl.clear(gl.COLOR_BUFFER_BIT);
+
+                    if (this._renderCount === 1) {
+                        console.log(
+                            "About to draw - vertex buffer:",
+                            this.vertexBuffer,
+                        );
+                        console.log(
+                            "Bound buffer:",
+                            gl.getParameter(
+                                gl.ARRAY_BUFFER_BINDING,
+                            ),
+                        );
+                        console.log(
+                            "Framebuffer:",
+                            gl.getParameter(
+                                gl.FRAMEBUFFER_BINDING,
+                            ),
+                        );
+                    }
+
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+                    if (this._renderCount === 1) {
+                        console.log("Draw call completed");
+                    }
+
+                    // Check for errors
+                    const err = gl.getError();
+                    if (err !== gl.NO_ERROR) {
+                        console.error(
+                            "WebGL error in render:",
+                            err,
+                        );
+                    }
+
+                    if (this._renderCount === 1) {
+                        // Force a flush to make sure rendering happens
+                        gl.flush();
+                        gl.finish();
+                        console.log("Flush/finish completed");
+                    }
+                }
+
+                exportImage(width, height) {
+                    // Store current size
+                    const originalWidth = this.width;
+                    const originalHeight = this.height;
+                    const originalCanvas = {
+                        width: this.canvas.width,
+                        height: this.canvas.height,
+                    };
+
+                    // Resize for export
+                    this.canvas.width = width;
+                    this.canvas.height = height;
+                    this.resize(width, height);
+
+                    // Copy current state to new size
+                    // (In a real implementation, you'd want to properly resample)
+                    this.seed("random");
+
+                    // Run some iterations to develop the pattern
+                    for (let i = 0; i < 1000; i++) {
+                        this.update();
+                    }
+
+                    // Render
+                    this.render();
+
+                    // Create download link
+                    this.canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download =
+                            `reaction-diffusion-${width}x${height}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+
+                    // Restore original size
+                    this.canvas.width = originalCanvas.width;
+                    this.canvas.height = originalCanvas.height;
+                    this.resize(originalWidth, originalHeight);
+                    this.seed();
+                }
             }
-            
-            render() {
-                const gl = this.gl;
 
-                if (!this._renderCount) this._renderCount = 0;
-                this._renderCount++;
-                if (this._renderCount % 60 === 0) {
-                    console.log('Render called', this._renderCount, 'times');
-                }
+            // Initialize
+            const canvas = document.getElementById("canvas");
+            canvas.width = 800;
+            canvas.height = 600;
 
-                // Use display program
-                gl.useProgram(this.displayProgram);
+            let sim;
+            try {
+                sim = new ReactionDiffusion(canvas);
+                console.log(
+                    "ReactionDiffusion initialized successfully",
+                );
+                console.log(
+                    "Canvas size:",
+                    canvas.width,
+                    "x",
+                    canvas.height,
+                );
+                console.log(
+                    "Canvas client size:",
+                    canvas.clientWidth,
+                    "x",
+                    canvas.clientHeight,
+                );
+                console.log(
+                    "Canvas style:",
+                    window.getComputedStyle(canvas).display,
+                );
+                console.log(
+                    "Simulation size:",
+                    sim.width,
+                    "x",
+                    sim.height,
+                );
 
-                if (this._renderCount === 1) {
-                    console.log('First render - program:', this.displayProgram);
-                    console.log('Current program:', gl.getParameter(gl.CURRENT_PROGRAM));
-                }
-
-                // Setup attributes
-                const posLoc = gl.getAttribLocation(this.displayProgram, 'a_position');
-                const texLoc = gl.getAttribLocation(this.displayProgram, 'a_texCoord');
-
-                if (this._renderCount === 1) {
-                    console.log('Attribute locations - position:', posLoc, 'texCoord:', texLoc);
-                }
-
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-                gl.enableVertexAttribArray(posLoc);
-                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
-                gl.enableVertexAttribArray(texLoc);
-                gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
-
-                // Set uniforms
-                gl.uniform1i(gl.getUniformLocation(this.displayProgram, 'u_texture'), 0);
-                gl.uniform1f(gl.getUniformLocation(this.displayProgram, 'u_brightness'), this.params.brightness);
-                gl.uniform1f(gl.getUniformLocation(this.displayProgram, 'u_contrast'), this.params.contrast);
-
-                const colorModeMap = {
-                    'grayscale': 0,
-                    'heatmap': 1,
-                    'rainbow': 2,
-                    'ocean': 3,
-                    'fire': 4
-                };
-                gl.uniform1i(gl.getUniformLocation(this.displayProgram, 'u_colorMode'),
-                           colorModeMap[this.params.colorMode]);
-
-                // Bind current texture
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
-
-                // Debug: log which texture we're using
-                if (this._renderCount <= 3) {
-                    console.log('Render #' + this._renderCount + ' - currentTexture === textureA?', this.currentTexture === this.textureA);
-                    console.log('Bound texture before bind:', gl.getParameter(gl.TEXTURE_BINDING_2D));
-                }
-
-                // Render to canvas
+                // Test: draw a simple test pattern to verify rendering
+                const gl = sim.gl;
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-
-                // DON'T clear - we want to draw over whatever is there
-                // gl.clearColor(0.0, 0.0, 0.5, 1.0);
-                // gl.clear(gl.COLOR_BUFFER_BIT);
-
-                if (this._renderCount === 1) {
-                    console.log('About to draw - vertex buffer:', this.vertexBuffer);
-                    console.log('Bound buffer:', gl.getParameter(gl.ARRAY_BUFFER_BINDING));
-                    console.log('Framebuffer:', gl.getParameter(gl.FRAMEBUFFER_BINDING));
-                }
-
-                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-                if (this._renderCount === 1) {
-                    console.log('Draw call completed');
-                }
-
-                // Check for errors
-                const err = gl.getError();
-                if (err !== gl.NO_ERROR) {
-                    console.error('WebGL error in render:', err);
-                }
-
-                if (this._renderCount === 1) {
-                    // Force a flush to make sure rendering happens
-                    gl.flush();
-                    gl.finish();
-                    console.log('Flush/finish completed');
-                }
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                gl.clearColor(0.0, 1.0, 0.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                console.log("Manually cleared canvas to green");
+                console.log(
+                    "Viewport:",
+                    gl.getParameter(gl.VIEWPORT),
+                );
+                console.log(
+                    "Scissor test:",
+                    gl.getParameter(gl.SCISSOR_TEST),
+                );
+                console.log(
+                    "Current framebuffer:",
+                    gl.getParameter(gl.FRAMEBUFFER_BINDING),
+                );
+            } catch (error) {
+                console.error("Failed to initialize:", error);
+                alert("Error: " + error.message);
             }
-            
-            exportImage(width, height) {
-                // Store current size
-                const originalWidth = this.width;
-                const originalHeight = this.height;
-                const originalCanvas = {
-                    width: this.canvas.width,
-                    height: this.canvas.height
-                };
-                
-                // Resize for export
-                this.canvas.width = width;
-                this.canvas.height = height;
-                this.resize(width, height);
-                
-                // Copy current state to new size
-                // (In a real implementation, you'd want to properly resample)
-                this.seed('random');
-                
-                // Run some iterations to develop the pattern
-                for (let i = 0; i < 1000; i++) {
-                    this.update();
-                }
-                
-                // Render
-                this.render();
-                
-                // Create download link
-                this.canvas.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `reaction-diffusion-${width}x${height}.png`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                });
-                
-                // Restore original size
-                this.canvas.width = originalCanvas.width;
-                this.canvas.height = originalCanvas.height;
-                this.resize(originalWidth, originalHeight);
-                this.seed();
-            }
-        }
-        
-        // Initialize
-        const canvas = document.getElementById('canvas');
-        canvas.width = 800;
-        canvas.height = 600;
 
-        let sim;
-        try {
-            sim = new ReactionDiffusion(canvas);
-            console.log('ReactionDiffusion initialized successfully');
-            console.log('Canvas size:', canvas.width, 'x', canvas.height);
-            console.log('Canvas client size:', canvas.clientWidth, 'x', canvas.clientHeight);
-            console.log('Canvas style:', window.getComputedStyle(canvas).display);
-            console.log('Simulation size:', sim.width, 'x', sim.height);
+            // Pattern presets
+            const presets = {
+                mitosis: {
+                    f: 0.0367,
+                    k: 0.0649,
+                    da: 1.0,
+                    db: 0.5,
+                },
+                coral: {
+                    f: 0.0545,
+                    k: 0.062,
+                    da: 1.0,
+                    db: 0.5,
+                },
+                spots: { f: 0.035, k: 0.065, da: 1.0, db: 0.5 },
+                stripes: {
+                    f: 0.022,
+                    k: 0.059,
+                    da: 1.0,
+                    db: 0.5,
+                },
+                spirals: {
+                    f: 0.014,
+                    k: 0.054,
+                    da: 1.0,
+                    db: 0.5,
+                },
+                waves: { f: 0.014, k: 0.045, da: 1.0, db: 0.5 },
+            };
 
-            // Test: draw a simple test pattern to verify rendering
-            const gl = sim.gl;
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.viewport(0, 0, canvas.width, canvas.height);
-            gl.clearColor(0.0, 1.0, 0.0, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            console.log('Manually cleared canvas to green');
-            console.log('Viewport:', gl.getParameter(gl.VIEWPORT));
-            console.log('Scissor test:', gl.getParameter(gl.SCISSOR_TEST));
-            console.log('Current framebuffer:', gl.getParameter(gl.FRAMEBUFFER_BINDING));
-        } catch (error) {
-            console.error('Failed to initialize:', error);
-            alert('Error: ' + error.message);
-        }
-        
-        // Pattern presets
-        const presets = {
-            mitosis: { f: 0.0367, k: 0.0649, da: 1.0, db: 0.5 },
-            coral: { f: 0.0545, k: 0.062, da: 1.0, db: 0.5 },
-            spots: { f: 0.035, k: 0.065, da: 1.0, db: 0.5 },
-            stripes: { f: 0.022, k: 0.059, da: 1.0, db: 0.5 },
-            spirals: { f: 0.014, k: 0.054, da: 1.0, db: 0.5 },
-            waves: { f: 0.014, k: 0.045, da: 1.0, db: 0.5 }
-        };
-        
-        // UI Controls
-        const controls = {
-            pauseBtn: document.getElementById('pauseBtn'),
-            clearBtn: document.getElementById('clearBtn'),
-            seedBtn: document.getElementById('seedBtn'),
-            randomBtn: document.getElementById('randomBtn'),
-            resizeBtn: document.getElementById('resizeBtn'),
-            exportPngBtn: document.getElementById('exportPngBtn'),
-            exportHighResBtn: document.getElementById('exportHighResBtn'),
-            export4kBtn: document.getElementById('export4kBtn'),
-            
-            feedRate: document.getElementById('feedRate'),
-            killRate: document.getElementById('killRate'),
-            diffusionA: document.getElementById('diffusionA'),
-            diffusionB: document.getElementById('diffusionB'),
-            timeStep: document.getElementById('timeStep'),
-            iterations: document.getElementById('iterations'),
-            brightness: document.getElementById('brightness'),
-            contrast: document.getElementById('contrast'),
-            colorMode: document.getElementById('colorMode'),
-            
-            widthInput: document.getElementById('widthInput'),
-            heightInput: document.getElementById('heightInput'),
-            
-            feedValue: document.getElementById('feedValue'),
-            killValue: document.getElementById('killValue'),
-            daValue: document.getElementById('daValue'),
-            dbValue: document.getElementById('dbValue'),
-            dtValue: document.getElementById('dtValue'),
-            iterValue: document.getElementById('iterValue'),
-            brightnessValue: document.getElementById('brightnessValue'),
-            contrastValue: document.getElementById('contrastValue'),
-            
-            fpsCounter: document.getElementById('fps'),
-            patternMap: document.getElementById('patternMap'),
-            patternCursor: document.getElementById('patternCursor')
-        };
-        
-        // Event listeners
-        controls.pauseBtn.addEventListener('click', () => {
-            if (!sim) return;
-            sim.paused = !sim.paused;
-            controls.pauseBtn.textContent = sim.paused ? 'Resume' : 'Pause';
-            controls.pauseBtn.classList.toggle('active', sim.paused);
-            console.log('Paused:', sim.paused);
-        });
+            // UI Controls
+            const controls = {
+                pauseBtn: document.getElementById("pauseBtn"),
+                clearBtn: document.getElementById("clearBtn"),
+                seedBtn: document.getElementById("seedBtn"),
+                randomBtn: document.getElementById("randomBtn"),
+                resizeBtn: document.getElementById("resizeBtn"),
+                exportPngBtn: document.getElementById(
+                    "exportPngBtn",
+                ),
+                exportHighResBtn: document.getElementById(
+                    "exportHighResBtn",
+                ),
+                export4kBtn: document.getElementById(
+                    "export4kBtn",
+                ),
 
-        // Set initial button state
-        controls.pauseBtn.textContent = 'Pause';
-        
-        controls.clearBtn.addEventListener('click', () => {
-            sim.clear();
-        });
-        
-        controls.seedBtn.addEventListener('click', () => {
-            sim.seed('center');
-        });
-        
-        controls.randomBtn.addEventListener('click', () => {
-            sim.seed('random');
-        });
-        
-        controls.resizeBtn.addEventListener('click', () => {
-            const width = parseInt(controls.widthInput.value);
-            const height = parseInt(controls.heightInput.value);
-            canvas.width = width;
-            canvas.height = height;
-            sim.resize(width, height);
-            sim.seed();
-        });
-        
-        // Export buttons
-        controls.exportPngBtn.addEventListener('click', () => {
-            canvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `reaction-diffusion-${canvas.width}x${canvas.height}.png`;
-                a.click();
-                URL.revokeObjectURL(url);
+                // Mask controls
+                maskEditBtn: document.getElementById(
+                    "maskEditBtn",
+                ),
+                clearMaskBtn: document.getElementById(
+                    "clearMaskBtn",
+                ),
+                useMaskCheck: document.getElementById(
+                    "useMaskCheck",
+                ),
+                showMaskCheck: document.getElementById(
+                    "showMaskCheck",
+                ),
+                blockDiffusionCheck: document.getElementById(
+                    "blockDiffusionCheck",
+                ),
+                maskMode: document.getElementById("maskMode"),
+                maskLambda: document.getElementById(
+                    "maskLambda",
+                ),
+                maskLambdaValue: document.getElementById(
+                    "maskLambdaValue",
+                ),
+
+                feedRate: document.getElementById("feedRate"),
+                killRate: document.getElementById("killRate"),
+                diffusionA: document.getElementById(
+                    "diffusionA",
+                ),
+                diffusionB: document.getElementById(
+                    "diffusionB",
+                ),
+                timeStep: document.getElementById("timeStep"),
+                iterations: document.getElementById(
+                    "iterations",
+                ),
+                brightness: document.getElementById(
+                    "brightness",
+                ),
+                contrast: document.getElementById("contrast"),
+                colorMode: document.getElementById("colorMode"),
+
+                widthInput: document.getElementById(
+                    "widthInput",
+                ),
+                heightInput: document.getElementById(
+                    "heightInput",
+                ),
+
+                feedValue: document.getElementById("feedValue"),
+                killValue: document.getElementById("killValue"),
+                daValue: document.getElementById("daValue"),
+                dbValue: document.getElementById("dbValue"),
+                dtValue: document.getElementById("dtValue"),
+                iterValue: document.getElementById("iterValue"),
+                brightnessValue: document.getElementById(
+                    "brightnessValue",
+                ),
+                contrastValue: document.getElementById(
+                    "contrastValue",
+                ),
+
+                fpsCounter: document.getElementById("fps"),
+                patternMap: document.getElementById(
+                    "patternMap",
+                ),
+                patternCursor: document.getElementById(
+                    "patternCursor",
+                ),
+            };
+
+            // Event listeners
+            controls.pauseBtn.addEventListener("click", () => {
+                if (!sim) return;
+                sim.paused = !sim.paused;
+                controls.pauseBtn.textContent = sim.paused
+                    ? "Resume"
+                    : "Pause";
+                controls.pauseBtn.classList.toggle(
+                    "active",
+                    sim.paused,
+                );
+                console.log("Paused:", sim.paused);
             });
-        });
-        
-        controls.exportHighResBtn.addEventListener('click', () => {
-            sim.exportImage(1920, 1080);
-        });
-        
-        controls.export4kBtn.addEventListener('click', () => {
-            sim.exportImage(3840, 2160);
-        });
-        
-        // Preset buttons
-        document.querySelectorAll('.preset-button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const preset = presets[e.target.dataset.preset];
-                if (preset) {
-                    controls.feedRate.value = preset.f;
-                    controls.killRate.value = preset.k;
-                    controls.diffusionA.value = preset.da;
-                    controls.diffusionB.value = preset.db;
-                    
+
+            // Set initial button state
+            controls.pauseBtn.textContent = "Pause";
+
+            controls.clearBtn.addEventListener("click", () => {
+                sim.clear();
+            });
+
+            controls.seedBtn.addEventListener("click", () => {
+                sim.seed("center");
+            });
+
+            controls.randomBtn.addEventListener("click", () => {
+                sim.seed("random");
+            });
+
+            // Mask controls
+            controls.maskEditBtn.addEventListener(
+                "click",
+                () => {
+                    if (!sim) return;
+                    sim.maskEditMode = !sim.maskEditMode;
+                    controls.maskEditBtn.textContent =
+                        sim.maskEditMode
+                            ? "Exit Mask Edit"
+                            : "Edit Mask Mode";
+                    controls.maskEditBtn.classList.toggle(
+                        "active",
+                        sim.maskEditMode,
+                    );
+                    canvas.style.cursor = sim.maskEditMode
+                        ? "cell"
+                        : "crosshair";
+                },
+            );
+
+            controls.clearMaskBtn.addEventListener(
+                "click",
+                () => {
+                    if (!sim) return;
+                    sim.clearMask();
+                },
+            );
+
+            controls.useMaskCheck.addEventListener(
+                "change",
+                (e) => {
+                    sim.params.useMask = e.target.checked;
+                },
+            );
+
+            controls.showMaskCheck.addEventListener(
+                "change",
+                (e) => {
+                    sim.params.showMask = e.target.checked;
+                },
+            );
+
+            controls.blockDiffusionCheck.addEventListener(
+                "change",
+                (e) => {
+                    sim.params.blockDiffusion =
+                        e.target.checked;
+                },
+            );
+
+            controls.maskMode.addEventListener(
+                "change",
+                (e) => {
+                    sim.params.maskMode = e.target.value;
+                },
+            );
+
+            controls.maskLambda.addEventListener(
+                "input",
+                () => {
+                    sim.params.maskLambda = parseFloat(
+                        controls.maskLambda.value,
+                    );
+                    controls.maskLambdaValue.textContent = sim
+                        .params.maskLambda.toFixed(2);
+                },
+            );
+
+            controls.resizeBtn.addEventListener("click", () => {
+                const width = parseInt(
+                    controls.widthInput.value,
+                );
+                const height = parseInt(
+                    controls.heightInput.value,
+                );
+                canvas.width = width;
+                canvas.height = height;
+                sim.resize(width, height);
+                sim.initMask();
+                sim.seed();
+            });
+
+            // Export buttons
+            controls.exportPngBtn.addEventListener(
+                "click",
+                () => {
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download =
+                            `reaction-diffusion-${canvas.width}x${canvas.height}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    });
+                },
+            );
+
+            controls.exportHighResBtn.addEventListener(
+                "click",
+                () => {
+                    sim.exportImage(1920, 1080);
+                },
+            );
+
+            controls.export4kBtn.addEventListener(
+                "click",
+                () => {
+                    sim.exportImage(3840, 2160);
+                },
+            );
+
+            // Preset buttons
+            document.querySelectorAll(".preset-button").forEach(
+                (btn) => {
+                    btn.addEventListener("click", (e) => {
+                        const preset =
+                            presets[e.target.dataset.preset];
+                        if (preset) {
+                            controls.feedRate.value = preset.f;
+                            controls.killRate.value = preset.k;
+                            controls.diffusionA.value =
+                                preset.da;
+                            controls.diffusionB.value =
+                                preset.db;
+
+                            updateParams();
+                            sim.seed("center");
+                        }
+                    });
+                },
+            );
+
+            // Pattern map interaction
+            controls.patternMap.addEventListener(
+                "click",
+                (e) => {
+                    const rect = controls.patternMap
+                        .getBoundingClientRect();
+                    const x = (e.clientX - rect.left) /
+                        rect.width;
+                    const y = 1.0 -
+                        (e.clientY - rect.top) / rect.height;
+
+                    // Map to parameter ranges
+                    const f = 0.01 + y * 0.09; // 0.01 to 0.1
+                    const k = 0.045 + x * 0.025; // 0.045 to 0.07
+
+                    controls.feedRate.value = f;
+                    controls.killRate.value = k;
+
+                    // Update cursor position
+                    controls.patternCursor.style.left =
+                        (x * 100) + "%";
+                    controls.patternCursor.style.top =
+                        ((1 - y) * 100) + "%";
+
                     updateParams();
-                    sim.seed('center');
+                },
+            );
+
+            // Parameter sliders
+            function updateParams() {
+                sim.params.feedRate = parseFloat(
+                    controls.feedRate.value,
+                );
+                sim.params.killRate = parseFloat(
+                    controls.killRate.value,
+                );
+                sim.params.diffusionA = parseFloat(
+                    controls.diffusionA.value,
+                );
+                sim.params.diffusionB = parseFloat(
+                    controls.diffusionB.value,
+                );
+                sim.params.timeStep = parseFloat(
+                    controls.timeStep.value,
+                );
+                sim.params.iterations = parseInt(
+                    controls.iterations.value,
+                );
+                sim.params.brightness = parseFloat(
+                    controls.brightness.value,
+                );
+                sim.params.contrast = parseFloat(
+                    controls.contrast.value,
+                );
+                sim.params.colorMode = controls.colorMode.value;
+
+                controls.feedValue.textContent = sim.params
+                    .feedRate.toFixed(4);
+                controls.killValue.textContent = sim.params
+                    .killRate.toFixed(4);
+                controls.daValue.textContent = sim.params
+                    .diffusionA.toFixed(2);
+                controls.dbValue.textContent = sim.params
+                    .diffusionB.toFixed(2);
+                controls.dtValue.textContent = sim.params
+                    .timeStep.toFixed(1);
+                controls.iterValue.textContent =
+                    sim.params.iterations;
+                controls.brightnessValue.textContent = sim
+                    .params.brightness.toFixed(1);
+                controls.contrastValue.textContent = sim.params
+                    .contrast.toFixed(1);
+
+                // Update pattern cursor position based on parameters
+                const x = (sim.params.killRate - 0.045) / 0.025;
+                const y = (sim.params.feedRate - 0.01) / 0.09;
+                controls.patternCursor.style.left = (x * 100) +
+                    "%";
+                controls.patternCursor.style.top =
+                    ((1 - y) * 100) + "%";
+            }
+
+            controls.feedRate.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.killRate.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.diffusionA.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.diffusionB.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.timeStep.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.iterations.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.brightness.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.contrast.addEventListener(
+                "input",
+                updateParams,
+            );
+            controls.colorMode.addEventListener(
+                "change",
+                updateParams,
+            );
+
+            // Mouse interaction for drawing
+            canvas.addEventListener("mousedown", (e) => {
+                sim.isDrawing = true;
+                sim.drawMode = e.shiftKey ? "remove" : "add";
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = 1.0 -
+                    (e.clientY - rect.top) / rect.height;
+
+                if (sim.maskEditMode) {
+                    sim.editMask(x, y, sim.drawMode);
+                } else {
+                    sim.draw(x, y, sim.drawMode);
+                }
+                sim.lastMousePos = { x, y };
+            });
+
+            canvas.addEventListener("mousemove", (e) => {
+                if (!sim.isDrawing) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = 1.0 -
+                    (e.clientY - rect.top) / rect.height;
+
+                // Draw line from last position to current
+                if (sim.lastMousePos) {
+                    const steps = 10;
+                    for (let i = 0; i <= steps; i++) {
+                        const t = i / steps;
+                        const ix = sim.lastMousePos.x +
+                            (x - sim.lastMousePos.x) * t;
+                        const iy = sim.lastMousePos.y +
+                            (y - sim.lastMousePos.y) * t;
+
+                        if (sim.maskEditMode) {
+                            sim.editMask(ix, iy, sim.drawMode);
+                        } else {
+                            sim.draw(ix, iy, sim.drawMode);
+                        }
+                    }
+                }
+
+                sim.lastMousePos = { x, y };
+            });
+
+            canvas.addEventListener("mouseup", () => {
+                sim.isDrawing = false;
+                sim.lastMousePos = null;
+            });
+
+            canvas.addEventListener("mouseleave", () => {
+                sim.isDrawing = false;
+                sim.lastMousePos = null;
+            });
+
+            // Touch support
+            canvas.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = (touch.clientX - rect.left) /
+                    rect.width;
+                const y = 1.0 -
+                    (touch.clientY - rect.top) / rect.height;
+                sim.isDrawing = true;
+                sim.drawMode = "add";
+
+                if (sim.maskEditMode) {
+                    sim.editMask(x, y, sim.drawMode);
+                } else {
+                    sim.draw(x, y, sim.drawMode);
+                }
+                sim.lastMousePos = { x, y };
+            });
+
+            canvas.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                if (!sim.isDrawing) return;
+
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = (touch.clientX - rect.left) /
+                    rect.width;
+                const y = 1.0 -
+                    (touch.clientY - rect.top) / rect.height;
+
+                if (sim.lastMousePos) {
+                    const steps = 10;
+                    for (let i = 0; i <= steps; i++) {
+                        const t = i / steps;
+                        const ix = sim.lastMousePos.x +
+                            (x - sim.lastMousePos.x) * t;
+                        const iy = sim.lastMousePos.y +
+                            (y - sim.lastMousePos.y) * t;
+
+                        if (sim.maskEditMode) {
+                            sim.editMask(ix, iy, sim.drawMode);
+                        } else {
+                            sim.draw(ix, iy, sim.drawMode);
+                        }
+                    }
+                }
+
+                sim.lastMousePos = { x, y };
+            });
+
+            canvas.addEventListener("touchend", (e) => {
+                e.preventDefault();
+                sim.isDrawing = false;
+                sim.lastMousePos = null;
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener("keydown", (e) => {
+                switch (e.key) {
+                    case " ":
+                        e.preventDefault();
+                        controls.pauseBtn.click();
+                        break;
+                    case "c":
+                    case "C":
+                        controls.clearBtn.click();
+                        break;
+                    case "r":
+                    case "R":
+                        sim.seed("center");
+                        break;
+                    case "s":
+                    case "S":
+                        controls.exportPngBtn.click();
+                        break;
+                    case "m":
+                    case "M":
+                        controls.maskEditBtn.click();
+                        break;
+                    case "v":
+                    case "V":
+                        // Toggle mask visualization
+                        controls.showMaskCheck.checked =
+                            !controls.showMaskCheck.checked;
+                        sim.params.showMask =
+                            controls.showMaskCheck.checked;
+                        break;
                 }
             });
-        });
-        
-        // Pattern map interaction
-        controls.patternMap.addEventListener('click', (e) => {
-            const rect = controls.patternMap.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = 1.0 - (e.clientY - rect.top) / rect.height;
-            
-            // Map to parameter ranges
-            const f = 0.01 + y * 0.09;  // 0.01 to 0.1
-            const k = 0.045 + x * 0.025; // 0.045 to 0.07
-            
-            controls.feedRate.value = f;
-            controls.killRate.value = k;
-            
-            // Update cursor position
-            controls.patternCursor.style.left = (x * 100) + '%';
-            controls.patternCursor.style.top = ((1 - y) * 100) + '%';
-            
-            updateParams();
-        });
-        
-        // Parameter sliders
-        function updateParams() {
-            sim.params.feedRate = parseFloat(controls.feedRate.value);
-            sim.params.killRate = parseFloat(controls.killRate.value);
-            sim.params.diffusionA = parseFloat(controls.diffusionA.value);
-            sim.params.diffusionB = parseFloat(controls.diffusionB.value);
-            sim.params.timeStep = parseFloat(controls.timeStep.value);
-            sim.params.iterations = parseInt(controls.iterations.value);
-            sim.params.brightness = parseFloat(controls.brightness.value);
-            sim.params.contrast = parseFloat(controls.contrast.value);
-            sim.params.colorMode = controls.colorMode.value;
-            
-            controls.feedValue.textContent = sim.params.feedRate.toFixed(4);
-            controls.killValue.textContent = sim.params.killRate.toFixed(4);
-            controls.daValue.textContent = sim.params.diffusionA.toFixed(2);
-            controls.dbValue.textContent = sim.params.diffusionB.toFixed(2);
-            controls.dtValue.textContent = sim.params.timeStep.toFixed(1);
-            controls.iterValue.textContent = sim.params.iterations;
-            controls.brightnessValue.textContent = sim.params.brightness.toFixed(1);
-            controls.contrastValue.textContent = sim.params.contrast.toFixed(1);
-            
-            // Update pattern cursor position based on parameters
-            const x = (sim.params.killRate - 0.045) / 0.025;
-            const y = (sim.params.feedRate - 0.01) / 0.09;
-            controls.patternCursor.style.left = (x * 100) + '%';
-            controls.patternCursor.style.top = ((1 - y) * 100) + '%';
-        }
-        
-        controls.feedRate.addEventListener('input', updateParams);
-        controls.killRate.addEventListener('input', updateParams);
-        controls.diffusionA.addEventListener('input', updateParams);
-        controls.diffusionB.addEventListener('input', updateParams);
-        controls.timeStep.addEventListener('input', updateParams);
-        controls.iterations.addEventListener('input', updateParams);
-        controls.brightness.addEventListener('input', updateParams);
-        controls.contrast.addEventListener('input', updateParams);
-        controls.colorMode.addEventListener('change', updateParams);
-        
-        // Mouse interaction for drawing
-        canvas.addEventListener('mousedown', (e) => {
-            sim.isDrawing = true;
-            sim.drawMode = e.ctrlKey ? 'remove' : 'add';
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = 1.0 - (e.clientY - rect.top) / rect.height;
-            sim.draw(x, y, sim.drawMode);
-            sim.lastMousePos = { x, y };
-        });
-        
-        canvas.addEventListener('mousemove', (e) => {
-            if (!sim.isDrawing) return;
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const y = 1.0 - (e.clientY - rect.top) / rect.height;
-            
-            // Draw line from last position to current
-            if (sim.lastMousePos) {
-                const steps = 10;
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const ix = sim.lastMousePos.x + (x - sim.lastMousePos.x) * t;
-                    const iy = sim.lastMousePos.y + (y - sim.lastMousePos.y) * t;
-                    sim.draw(ix, iy, sim.drawMode);
+
+            // Animation loop
+            let lastTime = 0;
+            let frameCount = 0;
+            let fpsTime = 0;
+
+            function animate(currentTime) {
+                if (!sim) {
+                    requestAnimationFrame(animate);
+                    return;
                 }
-            }
-            
-            sim.lastMousePos = { x, y };
-        });
-        
-        canvas.addEventListener('mouseup', () => {
-            sim.isDrawing = false;
-            sim.lastMousePos = null;
-        });
-        
-        canvas.addEventListener('mouseleave', () => {
-            sim.isDrawing = false;
-            sim.lastMousePos = null;
-        });
-        
-        // Touch support
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) / rect.width;
-            const y = 1.0 - (touch.clientY - rect.top) / rect.height;
-            sim.isDrawing = true;
-            sim.drawMode = 'add';
-            sim.draw(x, y, sim.drawMode);
-            sim.lastMousePos = { x, y };
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!sim.isDrawing) return;
-            
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const x = (touch.clientX - rect.left) / rect.width;
-            const y = 1.0 - (touch.clientY - rect.top) / rect.height;
-            
-            if (sim.lastMousePos) {
-                const steps = 10;
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const ix = sim.lastMousePos.x + (x - sim.lastMousePos.x) * t;
-                    const iy = sim.lastMousePos.y + (y - sim.lastMousePos.y) * t;
-                    sim.draw(ix, iy, sim.drawMode);
+
+                // Update FPS counter
+                frameCount++;
+                if (currentTime - fpsTime >= 1000) {
+                    controls.fpsCounter.textContent =
+                        frameCount;
+                    frameCount = 0;
+                    fpsTime = currentTime;
                 }
-            }
-            
-            sim.lastMousePos = { x, y };
-        });
-        
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            sim.isDrawing = false;
-            sim.lastMousePos = null;
-        });
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case ' ':
-                    e.preventDefault();
-                    controls.pauseBtn.click();
-                    break;
-                case 'c':
-                case 'C':
-                    controls.clearBtn.click();
-                    break;
-                case 'r':
-                case 'R':
-                    sim.seed('center');
-                    break;
-                case 's':
-                case 'S':
-                    controls.exportPngBtn.click();
-                    break;
-            }
-        });
-        
-        // Animation loop
-        let lastTime = 0;
-        let frameCount = 0;
-        let fpsTime = 0;
-        
-        function animate(currentTime) {
-            if (!sim) {
+
+                // Update simulation
+                sim.update();
+                sim.render();
+
                 requestAnimationFrame(animate);
-                return;
             }
 
-            // Update FPS counter
-            frameCount++;
-            if (currentTime - fpsTime >= 1000) {
-                controls.fpsCounter.textContent = frameCount;
-                frameCount = 0;
-                fpsTime = currentTime;
-            }
+            // Initialize parameters
+            updateParams();
 
-            // Update simulation
-            sim.update();
-            sim.render();
-
+            // Start animation
             requestAnimationFrame(animate);
-        }
-        
-        // Initialize parameters
-        updateParams();
-        
-        // Start animation
-        requestAnimationFrame(animate);
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            const container = document.querySelector('.canvas-container');
-            const maxWidth = container.clientWidth - 40;
-            const maxHeight = container.clientHeight - 40;
-            
-            const scale = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
-            canvas.style.transform = `scale(${Math.min(1, scale)})`;
-        });
-    </script>
-</body>
+
+            // Handle window resize
+            window.addEventListener("resize", () => {
+                const container = document.querySelector(
+                    ".canvas-container",
+                );
+                const maxWidth = container.clientWidth - 40;
+                const maxHeight = container.clientHeight - 40;
+
+                const scale = Math.min(
+                    maxWidth / canvas.width,
+                    maxHeight / canvas.height,
+                );
+                canvas.style.transform = `scale(${
+                    Math.min(1, scale)
+                })`;
+            });
+        </script>
+    </body>
 </html>
