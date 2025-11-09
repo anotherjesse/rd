@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction-Diffusion Explorer - GPU Accelerated</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0a0a;
+            position: relative;
+        }
+        
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: crosshair;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .controls {
+            width: 380px;
+            background: #242424;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #4a9eff;
+            text-align: center;
+        }
+        
+        h2 {
+            font-size: 1.1em;
+            margin: 20px 0 10px;
+            color: #7ab8ff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        input[type="number"] {
+            width: 100px;
+            padding: 5px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 3px;
+        }
+        
+        .value-display {
+            display: inline-block;
+            min-width: 60px;
+            text-align: right;
+            color: #4a9eff;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #3a8eef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(74, 158, 255, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.active {
+            background: #2a7edf;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .preset-button {
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 5px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #e0e0e0;
+            border-radius: 3px;
+        }
+        
+        .size-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .size-inputs input {
+            flex: 1;
+        }
+        
+        .info-text {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .fps-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #4a9eff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .pattern-map {
+            width: 100%;
+            height: 150px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            margin: 10px 0;
+            cursor: crosshair;
+            position: relative;
+        }
+        
+        .pattern-cursor {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 2px solid #4a9eff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .controls {
+                width: 100%;
+                max-height: 40vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div class="fps-counter">FPS: <span id="fps">0</span></div>
+        </div>
+        <div class="controls">
+            <h1>Reaction-Diffusion Explorer</h1>
+            
+            <h2>Quick Actions</h2>
+            <div class="button-group">
+                <button id="pauseBtn">Pause</button>
+                <button id="clearBtn">Clear</button>
+                <button id="seedBtn">Seed Center</button>
+                <button id="randomBtn">Random Seed</button>
+            </div>
+            
+            <h2>Pattern Presets</h2>
+            <div class="button-group">
+                <button class="preset-button" data-preset="mitosis">Mitosis</button>
+                <button class="preset-button" data-preset="coral">Coral</button>
+                <button class="preset-button" data-preset="spots">Spots</button>
+                <button class="preset-button" data-preset="stripes">Stripes</button>
+                <button class="preset-button" data-preset="spirals">Spirals</button>
+                <button class="preset-button" data-preset="waves">Waves</button>
+            </div>
+            
+            <h2>Pattern Map</h2>
+            <div class="pattern-map" id="patternMap">
+                <div class="pattern-cursor" id="patternCursor"></div>
+            </div>
+            <div class="info-text">Click to select f (vertical) and k (horizontal) values</div>
+            
+            <h2>Parameters</h2>
+            <div class="control-group">
+                <label>Feed Rate (f): <span class="value-display" id="feedValue">0.055</span></label>
+                <input type="range" id="feedRate" min="0.01" max="0.1" step="0.0001" value="0.055">
+            </div>
+            
+            <div class="control-group">
+                <label>Kill Rate (k): <span class="value-display" id="killValue">0.062</span></label>
+                <input type="range" id="killRate" min="0.045" max="0.07" step="0.0001" value="0.062">
+            </div>
+            
+            <div class="control-group">
+                <label>Diffusion A (DA): <span class="value-display" id="daValue">1.0</span></label>
+                <input type="range" id="diffusionA" min="0.5" max="1.5" step="0.01" value="1.0">
+            </div>
+            
+            <div class="control-group">
+                <label>Diffusion B (DB): <span class="value-display" id="dbValue">0.5</span></label>
+                <input type="range" id="diffusionB" min="0.1" max="0.8" step="0.01" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label>Time Step (Δt): <span class="value-display" id="dtValue">1.0</span></label>
+                <input type="range" id="timeStep" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+            
+            <div class="control-group">
+                <label>Iterations per Frame: <span class="value-display" id="iterValue">10</span></label>
+                <input type="range" id="iterations" min="1" max="50" step="1" value="10">
+            </div>
+            
+            <h2>Visualization</h2>
+            <div class="control-group">
+                <label>Color Mode:</label>
+                <select id="colorMode">
+                    <option value="grayscale">Grayscale</option>
+                    <option value="heatmap">Heatmap</option>
+                    <option value="rainbow">Rainbow</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="fire">Fire</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Brightness: <span class="value-display" id="brightnessValue">1.0</span></label>
+                <input type="range" id="brightness" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+            
+            <div class="control-group">
+                <label>Contrast: <span class="value-display" id="contrastValue">1.0</span></label>
+                <input type="range" id="contrast" min="0.5" max="3.0" step="0.1" value="1.0">
+            </div>
+            
+            <h2>Canvas Size</h2>
+            <div class="size-inputs">
+                <input type="number" id="widthInput" value="800" min="256" max="4096">
+                <span>×</span>
+                <input type="number" id="heightInput" value="600" min="256" max="4096">
+            </div>
+            <button id="resizeBtn">Apply Size</button>
+            <div class="info-text">Warning: Large sizes may impact performance</div>
+            
+            <h2>Export</h2>
+            <div class="button-group">
+                <button id="exportPngBtn">Export as PNG</button>
+                <button id="exportHighResBtn">Export HD (2K)</button>
+                <button id="export4kBtn">Export 4K</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebGL Reaction-Diffusion Simulator
+        class ReactionDiffusion {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.gl = canvas.getContext('webgl2', {
+                    preserveDrawingBuffer: true,
+                    antialias: false
+                });
+                
+                if (!this.gl) {
+                    throw new Error('WebGL 2 not supported');
+                }
+                
+                this.paused = false;
+                this.drawMode = 'add'; // 'add' or 'remove'
+                this.isDrawing = false;
+                this.lastMousePos = null;
+                
+                this.params = {
+                    feedRate: 0.055,
+                    killRate: 0.062,
+                    diffusionA: 1.0,
+                    diffusionB: 0.5,
+                    timeStep: 1.0,
+                    iterations: 10,
+                    brightness: 1.0,
+                    contrast: 1.0,
+                    colorMode: 'grayscale'
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                const gl = this.gl;
+                
+                // Enable float textures
+                const ext = gl.getExtension('EXT_color_buffer_float');
+                if (!ext) {
+                    throw new Error('Float textures not supported');
+                }
+                
+                // Create shaders
+                this.createShaders();
+                
+                // Create textures and framebuffers
+                this.resize(this.canvas.width, this.canvas.height);
+                
+                // Create vertex buffer
+                const vertices = new Float32Array([
+                    -1, -1, 0, 0,
+                     1, -1, 1, 0,
+                    -1,  1, 0, 1,
+                     1,  1, 1, 1
+                ]);
+                
+                this.vertexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+                
+                // Initialize with seed
+                this.seed();
+            }
+            
+            createShaders() {
+                const gl = this.gl;
+                
+                // Vertex shader (shared)
+                const vertexShaderSource = `#version 300 es
+                    in vec2 a_position;
+                    in vec2 a_texCoord;
+                    out vec2 v_texCoord;
+                    
+                    void main() {
+                        gl_Position = vec4(a_position, 0.0, 1.0);
+                        v_texCoord = a_texCoord;
+                    }
+                `;
+                
+                // Computation shader
+                const computeShaderSource = `#version 300 es
+                    precision highp float;
+                    
+                    in vec2 v_texCoord;
+                    out vec4 fragColor;
+                    
+                    uniform sampler2D u_texture;
+                    uniform vec2 u_texelSize;
+                    uniform float u_feedRate;
+                    uniform float u_killRate;
+                    uniform float u_diffusionA;
+                    uniform float u_diffusionB;
+                    uniform float u_timeStep;
+                    
+                    void main() {
+                        vec2 uv = v_texCoord;
+                        vec2 texel = u_texelSize;
+                        
+                        // Sample current and neighboring cells
+                        vec4 center = texture(u_texture, uv);
+                        vec4 n = texture(u_texture, uv + vec2(0.0, texel.y));
+                        vec4 s = texture(u_texture, uv - vec2(0.0, texel.y));
+                        vec4 e = texture(u_texture, uv + vec2(texel.x, 0.0));
+                        vec4 w = texture(u_texture, uv - vec2(texel.x, 0.0));
+                        vec4 ne = texture(u_texture, uv + vec2(texel.x, texel.y));
+                        vec4 nw = texture(u_texture, uv + vec2(-texel.x, texel.y));
+                        vec4 se = texture(u_texture, uv + vec2(texel.x, -texel.y));
+                        vec4 sw = texture(u_texture, uv + vec2(-texel.x, -texel.y));
+                        
+                        float a = center.r;
+                        float b = center.g;
+                        
+                        // Laplacian with weights: center=-1, adjacent=0.2, diagonal=0.05
+                        float laplaceA = (n.r + s.r + e.r + w.r) * 0.2 +
+                                        (ne.r + nw.r + se.r + sw.r) * 0.05 -
+                                        a;
+                        float laplaceB = (n.g + s.g + e.g + w.g) * 0.2 +
+                                        (ne.g + nw.g + se.g + sw.g) * 0.05 -
+                                        b;
+                        
+                        // Reaction-diffusion equations
+                        float reaction = a * b * b;
+                        float newA = a + (u_diffusionA * laplaceA - reaction + u_feedRate * (1.0 - a)) * u_timeStep;
+                        float newB = b + (u_diffusionB * laplaceB + reaction - (u_killRate + u_feedRate) * b) * u_timeStep;
+                        
+                        // Clamp values
+                        newA = clamp(newA, 0.0, 1.0);
+                        newB = clamp(newB, 0.0, 1.0);
+                        
+                        fragColor = vec4(newA, newB, 0.0, 1.0);
+                    }
+                `;
+                
+                // Display shader with color modes
+                const displayShaderSource = `#version 300 es
+                    precision highp float;
+                    
+                    in vec2 v_texCoord;
+                    out vec4 fragColor;
+                    
+                    uniform sampler2D u_texture;
+                    uniform float u_brightness;
+                    uniform float u_contrast;
+                    uniform int u_colorMode;
+                    
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+                    
+                    void main() {
+                        vec2 ab = texture(u_texture, v_texCoord).rg;
+                        float value = ab.g; // Use B concentration for visualization
+                        
+                        // Apply brightness and contrast
+                        value = (value - 0.5) * u_contrast + 0.5;
+                        value = value * u_brightness;
+                        value = clamp(value, 0.0, 1.0);
+                        
+                        vec3 color;
+                        
+                        if (u_colorMode == 0) { // Grayscale
+                            color = vec3(value);
+                        } else if (u_colorMode == 1) { // Heatmap
+                            color = vec3(value * 2.0, value * value, value * 0.5);
+                        } else if (u_colorMode == 2) { // Rainbow
+                            color = hsv2rgb(vec3(value * 0.8, 0.9, 1.0));
+                        } else if (u_colorMode == 3) { // Ocean
+                            color = vec3(0.0, value * 0.5 + 0.3, value * 0.8 + 0.2);
+                        } else if (u_colorMode == 4) { // Fire
+                            color = vec3(value * 2.0, value * value * 1.5, value * value * value);
+                        }
+                        
+                        fragColor = vec4(color, 1.0);
+                    }
+                `;
+                
+                // Seed shader for drawing
+                const seedShaderSource = `#version 300 es
+                    precision highp float;
+                    
+                    in vec2 v_texCoord;
+                    out vec4 fragColor;
+                    
+                    uniform sampler2D u_texture;
+                    uniform vec2 u_mousePos;
+                    uniform float u_brushSize;
+                    uniform int u_drawMode;
+                    
+                    void main() {
+                        vec2 ab = texture(u_texture, v_texCoord).rg;
+                        float dist = length(v_texCoord - u_mousePos);
+                        
+                        if (dist < u_brushSize) {
+                            float strength = 1.0 - (dist / u_brushSize);
+                            strength = smoothstep(0.0, 1.0, strength);
+                            
+                            if (u_drawMode == 1) { // Add B
+                                ab.g = mix(ab.g, 1.0, strength);
+                            } else { // Remove B
+                                ab.g = mix(ab.g, 0.0, strength);
+                            }
+                        }
+                        
+                        fragColor = vec4(ab.r, ab.g, 0.0, 1.0);
+                    }
+                `;
+                
+                // Compile shaders
+                this.computeProgram = this.createProgram(vertexShaderSource, computeShaderSource);
+                this.displayProgram = this.createProgram(vertexShaderSource, displayShaderSource);
+                this.seedProgram = this.createProgram(vertexShaderSource, seedShaderSource);
+            }
+            
+            createProgram(vertexSource, fragmentSource) {
+                const gl = this.gl;
+                
+                const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexSource);
+                const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
+                
+                const program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+                
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                    console.error('Program link error:', gl.getProgramInfoLog(program));
+                    return null;
+                }
+                
+                return program;
+            }
+            
+            createShader(type, source) {
+                const gl = this.gl;
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+                    return null;
+                }
+                
+                return shader;
+            }
+            
+            createTexture(width, height) {
+                const gl = this.gl;
+                const texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                return texture;
+            }
+            
+            createFramebuffer(texture) {
+                const gl = this.gl;
+                const framebuffer = gl.createFramebuffer();
+                gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+                return framebuffer;
+            }
+            
+            resize(width, height) {
+                const gl = this.gl;
+                
+                this.width = width;
+                this.height = height;
+                
+                // Create ping-pong textures
+                this.textureA = this.createTexture(width, height);
+                this.textureB = this.createTexture(width, height);
+                
+                this.framebufferA = this.createFramebuffer(this.textureA);
+                this.framebufferB = this.createFramebuffer(this.textureB);
+                
+                this.currentTexture = this.textureA;
+                this.currentFramebuffer = this.framebufferA;
+                
+                gl.viewport(0, 0, width, height);
+            }
+            
+            seed(pattern = 'center') {
+                const gl = this.gl;
+                const width = this.width;
+                const height = this.height;
+                
+                // Create initial data
+                const data = new Float32Array(width * height * 4);
+                
+                for (let i = 0; i < width * height; i++) {
+                    data[i * 4] = 1.0;     // A = 1
+                    data[i * 4 + 1] = 0.0; // B = 0
+                    data[i * 4 + 2] = 0.0;
+                    data[i * 4 + 3] = 1.0;
+                }
+                
+                // Add seed patterns
+                if (pattern === 'center') {
+                    const cx = Math.floor(width / 2);
+                    const cy = Math.floor(height / 2);
+                    const radius = 5;
+                    
+                    for (let y = -radius; y <= radius; y++) {
+                        for (let x = -radius; x <= radius; x++) {
+                            if (x * x + y * y <= radius * radius) {
+                                const idx = ((cy + y) * width + (cx + x)) * 4;
+                                data[idx + 1] = 1.0; // Set B = 1
+                            }
+                        }
+                    }
+                } else if (pattern === 'random') {
+                    const numSeeds = 20;
+                    for (let i = 0; i < numSeeds; i++) {
+                        const x = Math.floor(Math.random() * width);
+                        const y = Math.floor(Math.random() * height);
+                        const radius = 2 + Math.floor(Math.random() * 5);
+                        
+                        for (let dy = -radius; dy <= radius; dy++) {
+                            for (let dx = -radius; dx <= radius; dx++) {
+                                if (dx * dx + dy * dy <= radius * radius) {
+                                    const px = Math.min(Math.max(x + dx, 0), width - 1);
+                                    const py = Math.min(Math.max(y + dy, 0), height - 1);
+                                    const idx = (py * width + px) * 4;
+                                    data[idx + 1] = 1.0;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Upload to texture
+                gl.bindTexture(gl.TEXTURE_2D, this.textureA);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
+                gl.bindTexture(gl.TEXTURE_2D, this.textureB);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
+            }
+            
+            clear() {
+                const gl = this.gl;
+                const width = this.width;
+                const height = this.height;
+                
+                const data = new Float32Array(width * height * 4);
+                for (let i = 0; i < width * height; i++) {
+                    data[i * 4] = 1.0;     // A = 1
+                    data[i * 4 + 1] = 0.0; // B = 0
+                    data[i * 4 + 2] = 0.0;
+                    data[i * 4 + 3] = 1.0;
+                }
+                
+                gl.bindTexture(gl.TEXTURE_2D, this.textureA);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
+                gl.bindTexture(gl.TEXTURE_2D, this.textureB);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);
+            }
+            
+            draw(x, y, mode = 'add') {
+                const gl = this.gl;
+                
+                // Use seed program to draw
+                gl.useProgram(this.seedProgram);
+                
+                // Setup attributes
+                const posLoc = gl.getAttribLocation(this.seedProgram, 'a_position');
+                const texLoc = gl.getAttribLocation(this.seedProgram, 'a_texCoord');
+                
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                gl.enableVertexAttribArray(posLoc);
+                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
+                gl.enableVertexAttribArray(texLoc);
+                gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
+                
+                // Set uniforms
+                gl.uniform1i(gl.getUniformLocation(this.seedProgram, 'u_texture'), 0);
+                gl.uniform2f(gl.getUniformLocation(this.seedProgram, 'u_mousePos'), x, y);
+                gl.uniform1f(gl.getUniformLocation(this.seedProgram, 'u_brushSize'), 0.02);
+                gl.uniform1i(gl.getUniformLocation(this.seedProgram, 'u_drawMode'), mode === 'add' ? 1 : 0);
+                
+                // Bind current texture
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
+                
+                // Draw to other framebuffer
+                const targetFramebuffer = this.currentTexture === this.textureA ? this.framebufferB : this.framebufferA;
+                const targetTexture = this.currentTexture === this.textureA ? this.textureB : this.textureA;
+                
+                gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                
+                // Swap
+                this.currentTexture = targetTexture;
+                this.currentFramebuffer = targetFramebuffer;
+            }
+            
+            update() {
+                if (this.paused) return;
+                
+                const gl = this.gl;
+                
+                for (let i = 0; i < this.params.iterations; i++) {
+                    // Use compute program
+                    gl.useProgram(this.computeProgram);
+                    
+                    // Setup attributes
+                    const posLoc = gl.getAttribLocation(this.computeProgram, 'a_position');
+                    const texLoc = gl.getAttribLocation(this.computeProgram, 'a_texCoord');
+                    
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                    gl.enableVertexAttribArray(posLoc);
+                    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
+                    gl.enableVertexAttribArray(texLoc);
+                    gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
+                    
+                    // Set uniforms
+                    gl.uniform1i(gl.getUniformLocation(this.computeProgram, 'u_texture'), 0);
+                    gl.uniform2f(gl.getUniformLocation(this.computeProgram, 'u_texelSize'), 
+                               1.0 / this.width, 1.0 / this.height);
+                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_feedRate'), this.params.feedRate);
+                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_killRate'), this.params.killRate);
+                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_diffusionA'), this.params.diffusionA);
+                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_diffusionB'), this.params.diffusionB);
+                    gl.uniform1f(gl.getUniformLocation(this.computeProgram, 'u_timeStep'), this.params.timeStep);
+                    
+                    // Bind current texture
+                    gl.activeTexture(gl.TEXTURE0);
+                    gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
+                    
+                    // Render to other framebuffer
+                    const targetFramebuffer = this.currentTexture === this.textureA ? 
+                                            this.framebufferB : this.framebufferA;
+                    const targetTexture = this.currentTexture === this.textureA ? 
+                                        this.textureB : this.textureA;
+                    
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                    
+                    // Swap textures
+                    this.currentTexture = targetTexture;
+                    this.currentFramebuffer = targetFramebuffer;
+                }
+            }
+            
+            render() {
+                const gl = this.gl;
+                
+                // Use display program
+                gl.useProgram(this.displayProgram);
+                
+                // Setup attributes
+                const posLoc = gl.getAttribLocation(this.displayProgram, 'a_position');
+                const texLoc = gl.getAttribLocation(this.displayProgram, 'a_texCoord');
+                
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+                gl.enableVertexAttribArray(posLoc);
+                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
+                gl.enableVertexAttribArray(texLoc);
+                gl.vertexAttribPointer(texLoc, 2, gl.FLOAT, false, 16, 8);
+                
+                // Set uniforms
+                gl.uniform1i(gl.getUniformLocation(this.displayProgram, 'u_texture'), 0);
+                gl.uniform1f(gl.getUniformLocation(this.displayProgram, 'u_brightness'), this.params.brightness);
+                gl.uniform1f(gl.getUniformLocation(this.displayProgram, 'u_contrast'), this.params.contrast);
+                
+                const colorModeMap = {
+                    'grayscale': 0,
+                    'heatmap': 1,
+                    'rainbow': 2,
+                    'ocean': 3,
+                    'fire': 4
+                };
+                gl.uniform1i(gl.getUniformLocation(this.displayProgram, 'u_colorMode'), 
+                           colorModeMap[this.params.colorMode]);
+                
+                // Bind current texture
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, this.currentTexture);
+                
+                // Render to canvas
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            }
+            
+            exportImage(width, height) {
+                // Store current size
+                const originalWidth = this.width;
+                const originalHeight = this.height;
+                const originalCanvas = {
+                    width: this.canvas.width,
+                    height: this.canvas.height
+                };
+                
+                // Resize for export
+                this.canvas.width = width;
+                this.canvas.height = height;
+                this.resize(width, height);
+                
+                // Copy current state to new size
+                // (In a real implementation, you'd want to properly resample)
+                this.seed('random');
+                
+                // Run some iterations to develop the pattern
+                for (let i = 0; i < 1000; i++) {
+                    this.update();
+                }
+                
+                // Render
+                this.render();
+                
+                // Create download link
+                this.canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reaction-diffusion-${width}x${height}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+                
+                // Restore original size
+                this.canvas.width = originalCanvas.width;
+                this.canvas.height = originalCanvas.height;
+                this.resize(originalWidth, originalHeight);
+                this.seed();
+            }
+        }
+        
+        // Initialize
+        const canvas = document.getElementById('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        
+        const sim = new ReactionDiffusion(canvas);
+        
+        // Pattern presets
+        const presets = {
+            mitosis: { f: 0.0367, k: 0.0649, da: 1.0, db: 0.5 },
+            coral: { f: 0.0545, k: 0.062, da: 1.0, db: 0.5 },
+            spots: { f: 0.035, k: 0.065, da: 1.0, db: 0.5 },
+            stripes: { f: 0.022, k: 0.059, da: 1.0, db: 0.5 },
+            spirals: { f: 0.014, k: 0.054, da: 1.0, db: 0.5 },
+            waves: { f: 0.014, k: 0.045, da: 1.0, db: 0.5 }
+        };
+        
+        // UI Controls
+        const controls = {
+            pauseBtn: document.getElementById('pauseBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            seedBtn: document.getElementById('seedBtn'),
+            randomBtn: document.getElementById('randomBtn'),
+            resizeBtn: document.getElementById('resizeBtn'),
+            exportPngBtn: document.getElementById('exportPngBtn'),
+            exportHighResBtn: document.getElementById('exportHighResBtn'),
+            export4kBtn: document.getElementById('export4kBtn'),
+            
+            feedRate: document.getElementById('feedRate'),
+            killRate: document.getElementById('killRate'),
+            diffusionA: document.getElementById('diffusionA'),
+            diffusionB: document.getElementById('diffusionB'),
+            timeStep: document.getElementById('timeStep'),
+            iterations: document.getElementById('iterations'),
+            brightness: document.getElementById('brightness'),
+            contrast: document.getElementById('contrast'),
+            colorMode: document.getElementById('colorMode'),
+            
+            widthInput: document.getElementById('widthInput'),
+            heightInput: document.getElementById('heightInput'),
+            
+            feedValue: document.getElementById('feedValue'),
+            killValue: document.getElementById('killValue'),
+            daValue: document.getElementById('daValue'),
+            dbValue: document.getElementById('dbValue'),
+            dtValue: document.getElementById('dtValue'),
+            iterValue: document.getElementById('iterValue'),
+            brightnessValue: document.getElementById('brightnessValue'),
+            contrastValue: document.getElementById('contrastValue'),
+            
+            fpsCounter: document.getElementById('fps'),
+            patternMap: document.getElementById('patternMap'),
+            patternCursor: document.getElementById('patternCursor')
+        };
+        
+        // Event listeners
+        controls.pauseBtn.addEventListener('click', () => {
+            sim.paused = !sim.paused;
+            controls.pauseBtn.textContent = sim.paused ? 'Resume' : 'Pause';
+            controls.pauseBtn.classList.toggle('active', sim.paused);
+        });
+        
+        controls.clearBtn.addEventListener('click', () => {
+            sim.clear();
+        });
+        
+        controls.seedBtn.addEventListener('click', () => {
+            sim.seed('center');
+        });
+        
+        controls.randomBtn.addEventListener('click', () => {
+            sim.seed('random');
+        });
+        
+        controls.resizeBtn.addEventListener('click', () => {
+            const width = parseInt(controls.widthInput.value);
+            const height = parseInt(controls.heightInput.value);
+            canvas.width = width;
+            canvas.height = height;
+            sim.resize(width, height);
+            sim.seed();
+        });
+        
+        // Export buttons
+        controls.exportPngBtn.addEventListener('click', () => {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reaction-diffusion-${canvas.width}x${canvas.height}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+        
+        controls.exportHighResBtn.addEventListener('click', () => {
+            sim.exportImage(1920, 1080);
+        });
+        
+        controls.export4kBtn.addEventListener('click', () => {
+            sim.exportImage(3840, 2160);
+        });
+        
+        // Preset buttons
+        document.querySelectorAll('.preset-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = presets[e.target.dataset.preset];
+                if (preset) {
+                    controls.feedRate.value = preset.f;
+                    controls.killRate.value = preset.k;
+                    controls.diffusionA.value = preset.da;
+                    controls.diffusionB.value = preset.db;
+                    
+                    updateParams();
+                    sim.seed('center');
+                }
+            });
+        });
+        
+        // Pattern map interaction
+        controls.patternMap.addEventListener('click', (e) => {
+            const rect = controls.patternMap.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = 1.0 - (e.clientY - rect.top) / rect.height;
+            
+            // Map to parameter ranges
+            const f = 0.01 + y * 0.09;  // 0.01 to 0.1
+            const k = 0.045 + x * 0.025; // 0.045 to 0.07
+            
+            controls.feedRate.value = f;
+            controls.killRate.value = k;
+            
+            // Update cursor position
+            controls.patternCursor.style.left = (x * 100) + '%';
+            controls.patternCursor.style.top = ((1 - y) * 100) + '%';
+            
+            updateParams();
+        });
+        
+        // Parameter sliders
+        function updateParams() {
+            sim.params.feedRate = parseFloat(controls.feedRate.value);
+            sim.params.killRate = parseFloat(controls.killRate.value);
+            sim.params.diffusionA = parseFloat(controls.diffusionA.value);
+            sim.params.diffusionB = parseFloat(controls.diffusionB.value);
+            sim.params.timeStep = parseFloat(controls.timeStep.value);
+            sim.params.iterations = parseInt(controls.iterations.value);
+            sim.params.brightness = parseFloat(controls.brightness.value);
+            sim.params.contrast = parseFloat(controls.contrast.value);
+            sim.params.colorMode = controls.colorMode.value;
+            
+            controls.feedValue.textContent = sim.params.feedRate.toFixed(4);
+            controls.killValue.textContent = sim.params.killRate.toFixed(4);
+            controls.daValue.textContent = sim.params.diffusionA.toFixed(2);
+            controls.dbValue.textContent = sim.params.diffusionB.toFixed(2);
+            controls.dtValue.textContent = sim.params.timeStep.toFixed(1);
+            controls.iterValue.textContent = sim.params.iterations;
+            controls.brightnessValue.textContent = sim.params.brightness.toFixed(1);
+            controls.contrastValue.textContent = sim.params.contrast.toFixed(1);
+            
+            // Update pattern cursor position based on parameters
+            const x = (sim.params.killRate - 0.045) / 0.025;
+            const y = (sim.params.feedRate - 0.01) / 0.09;
+            controls.patternCursor.style.left = (x * 100) + '%';
+            controls.patternCursor.style.top = ((1 - y) * 100) + '%';
+        }
+        
+        controls.feedRate.addEventListener('input', updateParams);
+        controls.killRate.addEventListener('input', updateParams);
+        controls.diffusionA.addEventListener('input', updateParams);
+        controls.diffusionB.addEventListener('input', updateParams);
+        controls.timeStep.addEventListener('input', updateParams);
+        controls.iterations.addEventListener('input', updateParams);
+        controls.brightness.addEventListener('input', updateParams);
+        controls.contrast.addEventListener('input', updateParams);
+        controls.colorMode.addEventListener('change', updateParams);
+        
+        // Mouse interaction for drawing
+        canvas.addEventListener('mousedown', (e) => {
+            sim.isDrawing = true;
+            sim.drawMode = e.ctrlKey ? 'remove' : 'add';
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = 1.0 - (e.clientY - rect.top) / rect.height;
+            sim.draw(x, y, sim.drawMode);
+            sim.lastMousePos = { x, y };
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!sim.isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = 1.0 - (e.clientY - rect.top) / rect.height;
+            
+            // Draw line from last position to current
+            if (sim.lastMousePos) {
+                const steps = 10;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const ix = sim.lastMousePos.x + (x - sim.lastMousePos.x) * t;
+                    const iy = sim.lastMousePos.y + (y - sim.lastMousePos.y) * t;
+                    sim.draw(ix, iy, sim.drawMode);
+                }
+            }
+            
+            sim.lastMousePos = { x, y };
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            sim.isDrawing = false;
+            sim.lastMousePos = null;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            sim.isDrawing = false;
+            sim.lastMousePos = null;
+        });
+        
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) / rect.width;
+            const y = 1.0 - (touch.clientY - rect.top) / rect.height;
+            sim.isDrawing = true;
+            sim.drawMode = 'add';
+            sim.draw(x, y, sim.drawMode);
+            sim.lastMousePos = { x, y };
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!sim.isDrawing) return;
+            
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) / rect.width;
+            const y = 1.0 - (touch.clientY - rect.top) / rect.height;
+            
+            if (sim.lastMousePos) {
+                const steps = 10;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const ix = sim.lastMousePos.x + (x - sim.lastMousePos.x) * t;
+                    const iy = sim.lastMousePos.y + (y - sim.lastMousePos.y) * t;
+                    sim.draw(ix, iy, sim.drawMode);
+                }
+            }
+            
+            sim.lastMousePos = { x, y };
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            sim.isDrawing = false;
+            sim.lastMousePos = null;
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    controls.pauseBtn.click();
+                    break;
+                case 'c':
+                case 'C':
+                    controls.clearBtn.click();
+                    break;
+                case 'r':
+                case 'R':
+                    sim.seed('center');
+                    break;
+                case 's':
+                case 'S':
+                    controls.exportPngBtn.click();
+                    break;
+            }
+        });
+        
+        // Animation loop
+        let lastTime = 0;
+        let frameCount = 0;
+        let fpsTime = 0;
+        
+        function animate(currentTime) {
+            // Update FPS counter
+            frameCount++;
+            if (currentTime - fpsTime >= 1000) {
+                controls.fpsCounter.textContent = frameCount;
+                frameCount = 0;
+                fpsTime = currentTime;
+            }
+            
+            // Update simulation
+            sim.update();
+            sim.render();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Initialize parameters
+        updateParams();
+        
+        // Start animation
+        requestAnimationFrame(animate);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.querySelector('.canvas-container');
+            const maxWidth = container.clientWidth - 40;
+            const maxHeight = container.clientHeight - 40;
+            
+            const scale = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
+            canvas.style.transform = `scale(${Math.min(1, scale)})`;
+        });
+    </script>
+</body>
+</html>
