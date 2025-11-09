@@ -233,6 +233,20 @@
                     <button id="maskEditBtn">Edit Mask Mode</button>
                     <button id="clearMaskBtn">Clear Mask</button>
                 </div>
+                <div class="control-group">
+                    <label
+                        for="maskUpload"
+                        style="display: block; margin-top: 10px"
+                    >
+                        Upload Mask Image (Black/White):
+                    </label>
+                    <input
+                        type="file"
+                        id="maskUpload"
+                        accept="image/*"
+                        style="width: 100%; margin-top: 5px"
+                    >
+                </div>
                 <div class="info-text">
                     Draw (click) to block RD, Shift+Click to allow RD. Press M
                     to toggle mask editing.
@@ -384,14 +398,14 @@
                     <label>Iterations per Frame: <span
                             class="value-display"
                             id="iterValue"
-                        >10</span></label>
+                        >50</span></label>
                     <input
                         type="range"
                         id="iterations"
                         min="1"
                         max="50"
                         step="1"
-                        value="10"
+                        value="50"
                     >
                 </div>
 
@@ -508,7 +522,7 @@
                         diffusionA: 1.0,
                         diffusionB: 0.5,
                         timeStep: 1.0,
-                        iterations: 10,
+                        iterations: 50,
                         brightness: 1.0,
                         contrast: 1.0,
                         colorMode: "grayscale",
@@ -1334,6 +1348,63 @@
                     this.initMask();
                 }
 
+                loadMaskFromImage(imageData, width, height) {
+                    const gl = this.gl;
+
+                    // Create mask data from image (white = 1.0 active, black = 0.0 blocked)
+                    const data = new Float32Array(
+                        width * height * 4,
+                    );
+                    for (let i = 0; i < width * height; i++) {
+                        // Average RGB channels to get grayscale value
+                        const r = imageData[i * 4] / 255.0;
+                        const g = imageData[i * 4 + 1] / 255.0;
+                        const b = imageData[i * 4 + 2] / 255.0;
+                        const gray = (r + g + b) / 3.0;
+
+                        data[i * 4] = gray; // Mask value (1.0 = active/white, 0.0 = blocked/black)
+                        data[i * 4 + 1] = 0.0;
+                        data[i * 4 + 2] = 0.0;
+                        data[i * 4 + 3] = 1.0;
+                    }
+
+                    // Upload to both mask textures
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.maskTextureA,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+                    gl.bindTexture(
+                        gl.TEXTURE_2D,
+                        this.maskTextureB,
+                    );
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA32F,
+                        width,
+                        height,
+                        0,
+                        gl.RGBA,
+                        gl.FLOAT,
+                        data,
+                    );
+
+                    console.log(
+                        `Loaded mask from image: ${width}x${height}`,
+                    );
+                }
+
                 editMask(x, y, mode = "add") {
                     const gl = this.gl;
 
@@ -1945,13 +2016,17 @@
                 }
 
                 exportImage(width, height) {
-                    // Store current size
+                    // Store current size and mask overlay setting
                     const originalWidth = this.width;
                     const originalHeight = this.height;
                     const originalCanvas = {
                         width: this.canvas.width,
                         height: this.canvas.height,
                     };
+                    const originalShowMask = this.params.showMask;
+
+                    // Disable mask overlay for export
+                    this.params.showMask = false;
 
                     // Resize for export
                     this.canvas.width = width;
@@ -1967,7 +2042,7 @@
                         this.update();
                     }
 
-                    // Render
+                    // Render without mask overlay
                     this.render();
 
                     // Create download link
@@ -1981,11 +2056,12 @@
                         URL.revokeObjectURL(url);
                     });
 
-                    // Restore original size
+                    // Restore original size and mask overlay setting
                     this.canvas.width = originalCanvas.width;
                     this.canvas.height = originalCanvas.height;
                     this.resize(originalWidth, originalHeight);
                     this.seed();
+                    this.params.showMask = originalShowMask;
                 }
             }
 
@@ -2262,6 +2338,82 @@
                 },
             );
 
+            // Mask upload handler
+            document.getElementById("maskUpload")
+                .addEventListener(
+                    "change",
+                    (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                // Create a temporary canvas to extract image data
+                                const tempCanvas = document
+                                    .createElement("canvas");
+                                tempCanvas.width = img.width;
+                                tempCanvas.height = img.height;
+                                const tempCtx = tempCanvas
+                                    .getContext("2d");
+
+                                // Flip vertically to match coordinate system
+                                tempCtx.translate(
+                                    0,
+                                    img.height,
+                                );
+                                tempCtx.scale(1, -1);
+                                tempCtx.drawImage(img, 0, 0);
+
+                                // Get image data
+                                const imageData = tempCtx
+                                    .getImageData(
+                                        0,
+                                        0,
+                                        img.width,
+                                        img.height,
+                                    );
+
+                                // Resize canvas and simulation to match mask
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                controls.widthInput.value =
+                                    img.width;
+                                controls.heightInput.value =
+                                    img.height;
+
+                                // Resize simulation
+                                sim.resize(
+                                    img.width,
+                                    img.height,
+                                );
+
+                                // Load mask from image
+                                sim.loadMaskFromImage(
+                                    imageData.data,
+                                    img.width,
+                                    img.height,
+                                );
+
+                                // Initialize RD state and seed
+                                sim.seed("center");
+
+                                // Enable mask usage
+                                sim.params.useMask = true;
+                                controls.useMaskCheck.checked =
+                                    true;
+
+                                console.log(
+                                    `Mask uploaded and loaded: ${img.width}x${img.height}`,
+                                );
+                            };
+                            img.src = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    },
+                );
+
             controls.resizeBtn.addEventListener("click", () => {
                 const width = parseInt(
                     controls.widthInput.value,
@@ -2280,6 +2432,11 @@
             controls.exportPngBtn.addEventListener(
                 "click",
                 () => {
+                    // Temporarily disable mask overlay for export
+                    const originalShowMask = sim.params.showMask;
+                    sim.params.showMask = false;
+                    sim.render(); // Re-render without mask
+
                     canvas.toBlob((blob) => {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
@@ -2288,6 +2445,9 @@
                             `reaction-diffusion-${canvas.width}x${canvas.height}.png`;
                         a.click();
                         URL.revokeObjectURL(url);
+
+                        // Restore mask overlay setting
+                        sim.params.showMask = originalShowMask;
                     });
                 },
             );
